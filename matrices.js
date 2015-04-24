@@ -1,4 +1,4 @@
-/*
+/* 
 ------- TODO --------
 - create an arbitrary multiplication function, which takes two functions and a
   pair of matrices, and applies multiplication logic to them.  Instead of
@@ -10,19 +10,26 @@
 - same logic as all above, but as prototype members, passing in only one matrix
   and the functions.
 
-An usage case for the above operations would be if we have a matrix of another
+A usage case for the above operations would be if we have a matrix of another
 class that can't use the normal mathematical operators that are applied to
 floats/ints/etc.  A good example of this would be if we want to do something
 with a matrix of complex numbers.  We would need a custom multiplication
 function beyond basic JavaScript operators.
 
-,,, oooohh...
+...ooohh...
 
-Another way to handle
+Another way to handle that would be to allow the user to define arbitrary
+multipcation and addition functions to be used by this class.  If those
+functions are defined then it would use them.  Otherwise it just uses the
+normal math operators.
 
 - add a determinant function
 - an invertible function 
 - an inverse function
+- a "transpose" and "transposed" function, the first applying to the object
+  itself, the latter to the return value only.
+- transposeval(x, y), return: the value at cell x/y of this matrix transposed,
+  without actually transposing the matrix.
 */
 
 
@@ -63,17 +70,30 @@ matrixClass.prototype.setVals = function(data){
 
 // output this matrix as some HTML text
 matrixClass.prototype.dump = function(){
-	var rval = '';
-	var x, y;
+	return "<pre>" + this + "</pre><br/>";
+};
+
+matrixClass.prototype.toString = function(){
+	var numchars, maxchars = 0;
+	var str, rval;
+
+	rval = '';
+	for(x = 0; x < this.width; x++){
+		for(y = 0; y < this.height; y++){
+			numchars = this.val(x, y).toString().length + 2;
+			if(numchars > maxchars) maxchars = numchars;
+		}
+	}
 	for(y = 0; y < this.height; y++){
 		for(x = 0; x < this.width; x++){
-			if(x > 0) rval += ', ';
-			rval += this.data[x][y];
+			rval += x ? ',' + new Array(maxchars - str.length).join(' ') : '\n';
+			str = this.val(x, y).toString();
+			rval += str;
 		}
-		rval += "<br/>";
 	}
 	return rval;
 };
+
 
 // get the value at position (x, y) in the matrix
 matrixClass.prototype.val = function(x, y){
