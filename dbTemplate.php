@@ -3,8 +3,8 @@
 // record can be retreived as an object, it's values manipulated, etc.  Data is
 // scrubbed in the dbRecord class to prevent SQL injections when it gets saved.
 // tl;dr: It's a simple ORM of sorts
-mysql_connect('localhost', 'jacob', 'riboflaven avioli ridiculous wench');
-mysql_select_db('lapetitemascarade');
+mysql_connect('localhost', 'username', 'password');
+mysql_select_db('database');
 
 abstract class dbRecord{
 	protected $_data;
