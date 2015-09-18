@@ -48,7 +48,6 @@ define('_DB_database', '<database name>');
 define('_DB_user', '<db username>');
 define('_DB_password', '<db password>');
 
-//@$mysqli = new mysqli(_DB_host, _DB_user, _DB_password, _DB_database);
 @$mysqli = new mysqli(_DB_host, _DB_user, _DB_password, _DB_database);
 if($mysqli->connect_errno){
 	throw new Exception("dbTemplate.php: db connect failed: " . $mysqli->connect_errno);
