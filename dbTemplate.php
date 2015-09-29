@@ -101,6 +101,9 @@ abstract class dbRecord{
 	private function _buildSettings(){
 		$this->settings = array();
 		$this->settings['tableName'] = $this->_tableName;
+		$this->settings['keys'] = $this->_keys;
+		$this->settings['fields'] = $this->_fields;
+		$this->settings['links'] = $this->_links;
 	}
 
 	// reset this record to a blank one
@@ -123,6 +126,11 @@ abstract class dbRecord{
 
 	// delete this record from the database and reset the object
 	public function delete(){
+
+		if(method_exists($this, '_predelete')){
+			$this->_predelete();
+		}
+
 		if(!$this->_isNewRecord){
 			$query = "DELETE FROM `" . $this->_tableName . "` WHERE ";
 			$queryParts = array();
@@ -199,9 +207,41 @@ abstract class dbRecord{
 		return $rval;
 	}
 
-	// PLACEHOLDER:  In the future, it might be nice to add some field related functions
+	// handle dynamic static functions like <class>::getBy<field>(<value>);
 	public static function __callStatic($funcName, $args){
-		throw new Exception("dbRecord::$funcName is not defined, but I really should work on writing this __callStatic member function for handling things like table::getBy<fieldName>(value)");
+		$rval = null;
+		if(strtolower(substr($funcName, 0, 5)) == 'getby'){
+			$className = get_called_class();
+			$obj = new $className();
+			if(count($args) != 1){
+				throw new Exception("dbTemplate::__callStatic<$funcName>: invalid argument count (" . count($args) . ")");
+			}
+
+			if(is_array($args[0])){
+				$idList = $args[0];
+			}else{
+				$idList = array($args[0]);
+			}
+
+			$results = array();
+			foreach($idList as $id){
+				$val = $obj->getByField(substr($funcName, 5), $id);
+				if($val != null){
+					$results[] = $val;
+				}
+			}
+			if(count($results) == 1){
+				$rval = $results[0];
+			}else if(count($results) > 1){
+				$rval = $results;
+			}
+		}else{
+			// Could also add a get<Field> and set<Field> function that updates one particualr
+			// field on all records.  May not be that useful though.
+
+			throw new Exception("dbRecord::$funcName is not defined.");
+		}
+		return $rval;
 	}
 
 	// find the record(s) that this one links to based on the links 
@@ -240,6 +280,39 @@ abstract class dbRecord{
 		return $rval;
 	}
 
+	public function getField($name){
+		$rval = null;
+
+		// first, look for an aliased field name that matches $name:
+		if(array_key_exists($name, $this->_aliasMap)){
+			if(array_key_exists('gethandler', $this->_fields[$this->_aliasMap[$name]])){
+				// fixme... This will not handle the case where "gethandler" points to
+				// an undefined function.  It may give infinite recursion as a result.
+				$rval = $this->{$this->_fields[$this->_aliasMap[$name]]['gethandler']}($params);
+			}else{
+				$rval = $this->_data[$this->_aliasMap[$name]];
+			}
+
+		// ok, let's see if we can find it as a raw field name
+		}else if(array_key_exists($name, $this->_fields)){
+			if(array_key_exists('gethandler', $this->_fields[$name])){
+				$rval = $this->{$this->_fields[$name]['gethandler']}();
+			}else{
+				$rval = $this->_data[$name];
+			}
+
+		// maybe we can find it as a linked record		
+		}else if(array_key_exists($name, $this->_links)){
+			$rval = $this->linkedRecords($name);
+
+		// no dice
+		}else{
+			throw new Exception(get_class($this) . "::getField(): Invalid field name \"$name\"");
+		}
+
+		return $rval;
+	}
+
 	// handle various calls that use the field names (e.g. getId(), setId(), etc.)
 	public function __call($functionName, $params){
 		$func = strtolower(trim($functionName));
@@ -252,34 +325,7 @@ abstract class dbRecord{
 			$prefix = substr($func, 0, 3);
 			if($prefix == 'get'){
 				$name = substr($func, 3);
-				// first, look for an aliased field name
-				if(array_key_exists($name, $this->_aliasMap)){
-					if(array_key_exists('gethandler', $this->_fields[$this->_aliasMap[$name]])){
-						// fixme... This will not handle the case where "gethandler" points to
-						// an undefined function.  It may give infinite recursion as a result.
-						return $this->{$this->_fields[$this->_aliasMap[$name]]['gethandler']}();
-					}else{
-						return $this->_data[$this->_aliasMap[$name]];
-					}
-
-				// ok, let's see if we can find it as a raw field name
-				}else if(array_key_exists($name, $this->_fields)){
-					if(array_key_exists('gethandler', $this->_fields[$name])){
-						return $this->{$this->_fields[$name]['gethandler']}();
-					}else{
-						return $this->_data[$name];
-					}
-
-				// maybe we can find it as a linked record		
-				}else if(array_key_exists($name, $this->_links)){
-					// just another way of getting to linked records
-					// i.e. $user->getOrders() === $user->orders()
-					return $this->linkedRecords($name);
-
-				// no dice
-				}else{
-					throw new Exception(get_class($this) . "::get$name: Invalid field name \"$name\"");
-				}
+				return $this->getField($name);
 			
 			}else if($prefix == 'set'){
 				$name = substr($func, 3);
@@ -461,7 +507,7 @@ abstract class dbRecord{
 			}
 		}else{
 			$this->reset();
-			throw new Exception("Invalid " . implode(', ', $this->_keys) . " value" . (count($this->_keys) > 1 ? 's' : ''));
+			throw new Exception("dbTemplate::load: Invalid " . implode(', ', $this->_keys) . " value" . (count($this->_keys) > 1 ? 's' : ''));
 		}
 		if($row != null){
 			$this->_buildSettings();
@@ -627,6 +673,21 @@ abstract class dbRecord{
 		return $rval;
 	}
 
+	// --------------------------------------------------
+	// verify whether or not the specified field name is valid within this
+	// class
+	public static function hasField($fieldName){
+		$className = get_called_class();
+		$temp = new $className();
+		return $temp->_has_field($fieldName);
+	}
+
+	public function _has_field($fieldName){
+		return in_array($fieldName, $this->_aliasMap) || array_key_exists($fieldName, $this->_aliasMap);
+	}
+
+
+	// --------------------------------------------------
 	// retrieve private settings available
 	public static function getSettings(){
 		$className = get_called_class();
@@ -637,7 +698,71 @@ abstract class dbRecord{
 	public function getObjectSettings(){
 		return $this->settings;
 	}
-	
+
+	// --------------------------------------------------
+	// retrieve record(s) by matching the specified value in the specified
+	// field.  This is called by the __callStatic function defined above,
+	// and is expected to be used in this fashion:
+	//   $blah = foo::getByBar('snoo');
+	// where 'foo' is the class being used, 'Bar' is the field being
+	// searched, and 'snoo' is the value sought.
+	//
+	// it could also be done by:
+	//   $blip = new foo();
+	//   $blah = $blip->getByField('bar', 'snoo');
+	// but that makes less sense semantically.
+
+	public function getByField($fieldName, $value){
+		// TODO: expand this to handle links as well, so I could say something like:
+		// productClass::getBySupplier($supplierObject);
+		// and expect a list of product objects linked to that supplier object.
+		// ** maybe that's overkill though.  The above example would be equivalent to:
+		// $supplierObject->getProducts();
+		// or:
+		// productClass::getBySupplierId($supplierObject->getId());
+
+		$fieldName = strtolower(trim($fieldName));
+		if(array_key_exists($fieldName, $this->_aliasMap)){
+			$realFieldName = $this->_aliasMap[$fieldName];
+		}else if(in_array($fieldName, $this->_aliasMap)){
+			$realFieldName = $fieldName;
+		}else{
+			throw new Exception("dbTemplate::getByField('$fieldName', '$value'): Invalid field name '" . $fieldName . "'");
+		}
+
+		$query = "
+			SELECT * FROM `" . $this->_tableName . "`
+			WHERE `" . $this->_mysqli->real_escape_string($realFieldName) . "` = '"
+			. $this->_scrubValue($value, $realFieldName) . "'
+		";
+		$results = $this->_mysqli->query($query);
+		if(!$results){
+			throw new Exception("dbTemplate::getByField('$fieldName', '$value'): " . $this->_mysqli->error);
+		}
+
+		// we won't put any count limit on the query, but instead
+		// return an array of records of there's more than one
+		$className = get_class($this);
+		if($results->num_rows == 0){
+			$rval = null;
+		}else if($results->num_rows == 1){
+			$rval = new $className();
+			$rval->setData($results->fetch_assoc(), array('noalias'));
+			$rval->setNewRecord(false);
+		}else if($results->num_rows > 1){
+			$rval = array();
+			while($row = $results->fetch_assoc()){
+				$obj = new $className();
+				$obj->setData($row, array('noalias'));
+				$obj->setNewRecord(false);
+				$rval[] = $obj;
+			}
+		}else{
+			// shouldn't be possible, but just in case...
+			throw new Exception('dbRecord::__call::default: weird result: num_rows = ' . $results->num_rows);
+		}
+		return $rval;
+	}
 }
 
 /** an example table usage **/
@@ -803,4 +928,40 @@ example::search('foo'); // <-- all records where any field contains the string "
 
 // get an arary of the class settings:
 example::getSettings();
+
+/* 
+			
+			future development:  add handling of link tables here.  Perhaps:
+			'glAccounts' => array(
+				'class' => 'GLALineItemsLink',
+				'linkfields' => array(
+					'id' => 'line_items_id'
+				),
+				'child' => array(
+					'class' => 'glaClass',
+					'linkfields' => array(
+						'GL_accounts_id' => 'id'
+					)
+				)
+			)
+
+			An advantage with doing it that way would be that they could nest repeatedly.  e.g.
+			'periods' => array(
+				'class' => 'GLALineItemsLink',
+				'linkfields' => array(
+					'id' => 'line_items_id'
+				),
+				'child' => array(
+					'class' => 'glaClass',
+					'linkfields' => array(
+						'GL_accounts_id' => 'id'
+					),
+					'child' => array(
+						'class' => 'periodClass',
+						'linkfields => array(
+							'periods_id' => 'id'
+						)
+					)
+				)
+			)
 */
