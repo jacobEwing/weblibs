@@ -829,6 +829,13 @@ class example extends dbRecord{
 	public function _validate_examplefield($val){
 		return strtolower(substr(trim($val), 0, 3)) == 'foo';
 	}
+
+	// The _predelete function is called at the beginning of the
+	// delete process.  This was put in place to handle cleanup of
+	// foreign keys before attempting to delete the record.
+	public function _predelete(){
+		$this->parent()->setChild(null);  // <-- note that this example doesn't actually match the code above.  There's no setChild function.
+	}
 }
 
 // ************ Usage **********
