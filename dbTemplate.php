@@ -114,6 +114,11 @@ abstract class dbRecord{
 
 	// delete this record from the database and reset the object
 	public function delete(){
+
+		if(method_exists($this, '_predelete')){
+			$this->_predelete();
+		}
+
 		if(!$this->_isNewRecord){
 			$query = "DELETE FROM `" . $this->_tableName . "` WHERE ";
 			$queryParts = array();
@@ -219,6 +224,8 @@ abstract class dbRecord{
 				$rval = $results;
 			}
 		}else{
+			// Could also add a get<Field> and set<Field> function that updates one particualr
+			// field on all records.  May not be that useful though.
 			throw new Exception("dbRecord::$funcName is not defined.");
 		}
 		return $rval;
@@ -260,6 +267,39 @@ abstract class dbRecord{
 		return $rval;
 	}
 
+	public function getField($name){
+		$rval = null;
+
+		// first, look for an aliased field name that matches $name:
+		if(array_key_exists($name, $this->_aliasMap)){
+			if(array_key_exists('gethandler', $this->_fields[$this->_aliasMap[$name]])){
+				// fixme... This will not handle the case where "gethandler" points to
+				// an undefined function.  It may give infinite recursion as a result.
+				$rval = $this->{$this->_fields[$this->_aliasMap[$name]]['gethandler']}($params);
+			}else{
+				$rval = $this->_data[$this->_aliasMap[$name]];
+			}
+
+		// ok, let's see if we can find it as a raw field name
+		}else if(array_key_exists($name, $this->_fields)){
+			if(array_key_exists('gethandler', $this->_fields[$name])){
+				$rval = $this->{$this->_fields[$name]['gethandler']}();
+			}else{
+				$rval = $this->_data[$name];
+			}
+
+		// maybe we can find it as a linked record		
+		}else if(array_key_exists($name, $this->_links)){
+			$rval = $this->linkedRecords($name);
+
+		// no dice
+		}else{
+			throw new Exception(get_class($this) . "::getField(): Invalid field name \"$name\"");
+		}
+
+		return $rval;
+	}
+
 	// handle various calls that use the field names (e.g. getId(), setId(), etc.)
 	public function __call($functionName, $params){
 		$func = strtolower(trim($functionName));
@@ -272,34 +312,7 @@ abstract class dbRecord{
 			$prefix = substr($func, 0, 3);
 			if($prefix == 'get'){
 				$name = substr($func, 3);
-				// first, look for an aliased field name
-				if(array_key_exists($name, $this->_aliasMap)){
-					if(array_key_exists('gethandler', $this->_fields[$this->_aliasMap[$name]])){
-						// fixme... This will not handle the case where "gethandler" points to
-						// an undefined function.  It may give infinite recursion as a result.
-						return $this->{$this->_fields[$this->_aliasMap[$name]]['gethandler']}();
-					}else{
-						return $this->_data[$this->_aliasMap[$name]];
-					}
-
-				// ok, let's see if we can find it as a raw field name
-				}else if(array_key_exists($name, $this->_fields)){
-					if(array_key_exists('gethandler', $this->_fields[$name])){
-						return $this->{$this->_fields[$name]['gethandler']}();
-					}else{
-						return $this->_data[$name];
-					}
-
-				// maybe we can find it as a linked record		
-				}else if(array_key_exists($name, $this->_links)){
-					// just another way of getting to linked records
-					// i.e. $user->getOrders() === $user->orders()
-					return $this->linkedRecords($name);
-
-				// no dice
-				}else{
-					throw new Exception(get_class($this) . "::get$name: Invalid field name \"$name\"");
-				}
+				return $this->getField($name);
 			
 			}else if($prefix == 'set'){
 				$name = substr($func, 3);
@@ -481,7 +494,7 @@ abstract class dbRecord{
 			}
 		}else{
 			$this->reset();
-			throw new Exception("Invalid " . implode(', ', $this->_keys) . " value" . (count($this->_keys) > 1 ? 's' : ''));
+			throw new Exception("dbTemplate::load: Invalid " . implode(', ', $this->_keys) . " value" . (count($this->_keys) > 1 ? 's' : ''));
 		}
 		if($row != null){
 			$this->_buildSettings();
@@ -803,6 +816,13 @@ class example extends dbRecord{
 	public function _validate_examplefield($val){
 		return strtolower(substr(trim($val), 0, 3)) == 'foo';
 	}
+
+	// The _predelete function is called at the beginning of the
+	// delete process.  This was put in place to handle cleanup of
+	// foreign keys before attempting to delete the record.
+	public function _predelete(){
+		$this->parent()->setChild(null);  // <-- note that this example doesn't actually match the code above.  There's no setChild function.
+	}
 }
 
 // ************ Usage **********
@@ -902,4 +922,40 @@ example::search('foo'); // <-- all records where any field contains the string "
 
 // get an arary of the class settings:
 example::getSettings();
+
+/* 
+			
+			future development:  add handling of link tables here.  Perhaps:
+			'glAccounts' => array(
+				'class' => 'GLALineItemsLink',
+				'linkfields' => array(
+					'id' => 'line_items_id'
+				),
+				'child' => array(
+					'class' => 'glaClass',
+					'linkfields' => array(
+						'GL_accounts_id' => 'id'
+					)
+				)
+			)
+
+			An advantage with doing it that way would be that they could nest repeatedly.  e.g.
+			'periods' => array(
+				'class' => 'GLALineItemsLink',
+				'linkfields' => array(
+					'id' => 'line_items_id'
+				),
+				'child' => array(
+					'class' => 'glaClass',
+					'linkfields' => array(
+						'GL_accounts_id' => 'id'
+					),
+					'child' => array(
+						'class' => 'periodClass',
+						'linkfields => array(
+							'periods_id' => 'id'
+						)
+					)
+				)
+			)
 */
