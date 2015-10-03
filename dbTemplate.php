@@ -30,18 +30,6 @@ I might have to actually start documenting this.
 
     both of which are currently valid
 
-
- - TODO Would be nice to have a "getBy" function to find all records that match
-   a specific field value.  
-
-   e.g.
-   	userClass::getBy('managerId', 1);
-   or
-   	userClass::getByManagerId(1);
-
-   Would both return all users who have user 1 as their manager.
-   That would need to be done in a way that doesn't break getting fields that
-   start with "by".  e.g. "getBylaw" or "getByLaw".
 */
 define('_DB_host', '<host name>');
 define('_DB_database', '<database name>');
@@ -101,6 +89,9 @@ abstract class dbRecord{
 	private function _buildSettings(){
 		$this->settings = array();
 		$this->settings['tableName'] = $this->_tableName;
+		$this->settings['keys'] = $this->_keys;
+		$this->settings['fields'] = $this->_fields;
+		$this->settings['links'] = $this->_links;
 	}
 
 	// reset this record to a blank one
@@ -199,9 +190,38 @@ abstract class dbRecord{
 		return $rval;
 	}
 
-	// PLACEHOLDER:  In the future, it might be nice to add some field related functions
+	// handle dynamic static functions like <class>::getBy<field>(<value>);
 	public static function __callStatic($funcName, $args){
-		throw new Exception("dbRecord::$funcName is not defined, but I really should work on writing this __callStatic member function for handling things like table::getBy<fieldName>(value)");
+		$rval = null;
+		if(strtolower(substr($funcName, 0, 5)) == 'getby'){
+			$className = get_called_class();
+			$obj = new $className();
+			if(count($args) != 1){
+				throw new Exception("dbTemplate::__callStatic<$funcName>: invalid argument count (" . count($args) . ")");
+			}
+
+			if(is_array($args[0])){
+				$idList = $args[0];
+			}else{
+				$idList = array($args[0]);
+			}
+
+			$results = array();
+			foreach($idList as $id){
+				$val = $obj->getByField(substr($funcName, 5), $id);
+				if($val != null){
+					$results[] = $val;
+				}
+			}
+			if(count($results) == 1){
+				$rval = $results[0];
+			}else if(count($results) > 1){
+				$rval = $results;
+			}
+		}else{
+			throw new Exception("dbRecord::$funcName is not defined.");
+		}
+		return $rval;
 	}
 
 	// find the record(s) that this one links to based on the links 
@@ -627,6 +647,21 @@ abstract class dbRecord{
 		return $rval;
 	}
 
+	// --------------------------------------------------
+	// verify whether or not the specified field name is valid within this
+	// class
+	public static function hasField($fieldName){
+		$className = get_called_class();
+		$temp = new $className();
+		return $temp->_has_field($fieldName);
+	}
+
+	public function _has_field($fieldName){
+		return in_array($fieldName, $this->_aliasMap) || array_key_exists($fieldName, $this->_aliasMap);
+	}
+
+
+	// --------------------------------------------------
 	// retrieve private settings available
 	public static function getSettings(){
 		$className = get_called_class();
@@ -637,7 +672,71 @@ abstract class dbRecord{
 	public function getObjectSettings(){
 		return $this->settings;
 	}
-	
+
+	// --------------------------------------------------
+	// retrieve record(s) by matching the specified value in the specified
+	// field.  This is called by the __callStatic function defined above,
+	// and is expected to be used in this fashion:
+	//   $blah = foo::getByBar('snoo');
+	// where 'foo' is the class being used, 'Bar' is the field being
+	// searched, and 'snoo' is the value sought.
+	//
+	// it could also be done by:
+	//   $blip = new foo();
+	//   $blah = $blip->getByField('bar', 'snoo');
+	// but that makes less sense semantically.
+
+	public function getByField($fieldName, $value){
+		// TODO: expand this to handle links as well, so I could say something like:
+		// productClass::getBySupplier($supplierObject);
+		// and expect a list of product objects linked to that supplier object.
+		// ** maybe that's overkill though.  The above example would be equivalent to:
+		// $supplierObject->getProducts();
+		// or:
+		// productClass::getBySupplierId($supplierObject->getId());
+
+		$fieldName = strtolower(trim($fieldName));
+		if(array_key_exists($fieldName, $this->_aliasMap)){
+			$realFieldName = $this->_aliasMap[$fieldName];
+		}else if(in_array($fieldName, $this->_aliasMap)){
+			$realFieldName = $fieldName;
+		}else{
+			throw new Exception("dbTemplate::getByField('$fieldName', '$value'): Invalid field name '" . $fieldName . "'");
+		}
+
+		$query = "
+			SELECT * FROM `" . $this->_tableName . "`
+			WHERE `" . $this->_mysqli->real_escape_string($realFieldName) . "` = '"
+			. $this->_scrubValue($value, $realFieldName) . "'
+		";
+		$results = $this->_mysqli->query($query);
+		if(!$results){
+			throw new Exception("dbTemplate::getByField('$fieldName', '$value'): " . $this->_mysqli->error);
+		}
+
+		// we won't put any count limit on the query, but instead
+		// return an array of records of there's more than one
+		$className = get_class($this);
+		if($results->num_rows == 0){
+			$rval = null;
+		}else if($results->num_rows == 1){
+			$rval = new $className();
+			$rval->setData($results->fetch_assoc(), array('noalias'));
+			$rval->setNewRecord(false);
+		}else if($results->num_rows > 1){
+			$rval = array();
+			while($row = $results->fetch_assoc()){
+				$obj = new $className();
+				$obj->setData($row, array('noalias'));
+				$obj->setNewRecord(false);
+				$rval[] = $obj;
+			}
+		}else{
+			// shouldn't be possible, but just in case...
+			throw new Exception('dbRecord::__call::default: weird result: num_rows = ' . $results->num_rows);
+		}
+		return $rval;
+	}
 }
 
 /** an example table usage **/
