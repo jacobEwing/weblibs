@@ -226,15 +226,39 @@ abstract class dbRecord{
 		}else{
 			// Could also add a get<Field> and set<Field> function that updates one particualr
 			// field on all records.  May not be that useful though.
+
 			throw new Exception("dbRecord::$funcName is not defined.");
 		}
 		return $rval;
 	}
 
 	// find the record(s) that this one links to based on the links 
-	public function linkedRecords($linkname){
+	// $definition should be the array that defines the link.  This is passed in to allow for recursion
+	public function linkedRecords($definition, $recursionDepth = 0){
+		if($recursionDepth > 10){
+			throw new Exception("dbTemplate::linkedRecords: maximum recursion depth reached!");
+		}
+
+		$flags = array(
+			'force_array' => false,
+			'allow_duplicates' => false
+		);
+
+		// any special flags set in the definition can be noted now.
+		if(array_key_exists('flags', $definition)){
+			if(!is_array($definition['flags'])){
+				throw new Exception("dbRecord::linkedRecords: flags parameter should be defined as an array");
+			}
+			foreach($definition['flags'] as $flag){
+				if(array_key_exists($flag, $flags)){
+					$flags[$flag] = true;
+				}else{
+					throw new Exception("dbRecord::linkedRecords: invalid flag, '$flag'");
+				}
+			}
+		}
+
 		$conditions = array('TRUE');
-		$definition = $this->_links[$linkname];
 		foreach($definition['linkfields'] as $thisField => $thatField){
 			$condition = '`' . $this->_mysqli->real_escape_string($thatField);
 			$condition .= "` = '" . $this->_mysqli->real_escape_string($this->_data[$thisField]) . "'";
@@ -252,17 +276,35 @@ abstract class dbRecord{
 			$rval = new $definition['class']();
 			$rval->setData($results->fetch_assoc(), array('noalias'));
 			$rval->setNewRecord(false);
+			if(array_key_exists('childlink', $definition)){
+				$rval = $rval->linkedRecords($definition['childlink'], $recursionDepth + 1);
+			}
 		}else if($results->num_rows > 1){
 			$rval = array();
 			while($row = $results->fetch_assoc()){
 				$obj = new $definition['class']();
 				$obj->setData($row, array('noalias'));
 				$obj->setNewRecord(false);
-				$rval[] = $obj;
+				if(array_key_exists('childlink', $definition)){
+					$children = $obj->linkedRecords($definition['childlink'], $recursionDepth + 1);
+					if(is_array($children)){
+						$rval = array_merge($rval, $children);
+					}else if(is_object($children)){
+						$rval[] = $children;
+					}
+				}else{
+					$rval[] = $obj;
+				}
+			}
+			if(!$flags['allow_duplicates']){
+				$rval = array_unique($rval);
 			}
 		}else{
 			// shouldn't be possible, but just in case...
 			throw new Exception('dbRecord::__call::default: weird result: num_rows = ' . $results->num_rows);
+		}
+		if($flags['force_array'] && !is_array($rval)){
+			$rval = $rval == null ? array() : array($rval);
 		}
 		return $rval;
 	}
@@ -290,7 +332,7 @@ abstract class dbRecord{
 
 		// maybe we can find it as a linked record		
 		}else if(array_key_exists($name, $this->_links)){
-			$rval = $this->linkedRecords($name);
+			$rval = $this->linkedRecords($this->_links[$name]);
 
 		// no dice
 		}else{
@@ -306,7 +348,7 @@ abstract class dbRecord{
 
 		// if this exists in our _links array, then find the corresponding record(s).
 		if(array_key_exists($func, $this->_links)){
-			return $this->linkedRecords($func);
+			return $this->linkedRecords($this->_links[$func]);
 
 		}else{
 			$prefix = substr($func, 0, 3);
@@ -803,7 +845,62 @@ class example extends dbRecord{
 				'linkfields' => array( // <-- an array of fields linking this record to the linked one
 					'parent_id' => 'id' // <-- i.e. "this record's 'parent_id' field should match 'id' on the linked record(s)"
 				)
+			),
+
+			// we can also have nested links.  They are handled recursively to a limit of
+			// ten (just a constant in the code, so that can be adjusted if need be)
+
+			'grandparent' => array(
+				'class' => 'example',
+				'linkfields' => array(
+					'parent_id' => 'id'
+				),
+				'childlink' => array(
+					'class' => 'example',
+					'linkfields' => array(
+						'parent_id' => 'id'
+					)
+				)
+			),
+			'greatgrandparent' => array(
+				'class' => 'example',
+				'linkfields' => array(
+					'parent_id' => 'id'
+				),
+				'childlink' => array(
+					'class' => 'example',
+					'linkfields' => array(
+						'parent_id' => 'id'
+					),
+					'childlink' => array(
+						'class' => 'example',
+						'linkfields' => array(
+							'parent_id' => 'id'
+						)
+					)
+				)
+			),
+
+			// additional parameters can be put in as well,
+			'children' => array(
+				'class' => 'example',
+				'linkfields' => array(
+					'id' => 'parent_id'
+				),
+				'flags' => array(
+					'force_array', // return the results as an array, regardless of their quantity
+					'allow_duplicates', // allow duplicate records in the resulting array. *(see note below)
+				)
 			)
+
+			// * Note that the example above wouldn't make sense for allowing duplicates,
+			// as duplicate records would be impossible.  A better example for that would a
+			// users table, a groups table and a permissions table, with link tables
+			// connecting them in that order.  If a user belongs to more than one group,
+			// and more than one of those groups have the same permission, the default
+			// setting would give you only one instance of the permission.  If the
+			// 'allow_duplicates' flag is added, then it can show up multiple times in the
+			// resulting array.
 		);
         }
 
@@ -923,39 +1020,4 @@ example::search('foo'); // <-- all records where any field contains the string "
 // get an arary of the class settings:
 example::getSettings();
 
-/* 
-			
-			future development:  add handling of link tables here.  Perhaps:
-			'glAccounts' => array(
-				'class' => 'GLALineItemsLink',
-				'linkfields' => array(
-					'id' => 'line_items_id'
-				),
-				'child' => array(
-					'class' => 'glaClass',
-					'linkfields' => array(
-						'GL_accounts_id' => 'id'
-					)
-				)
-			)
-
-			An advantage with doing it that way would be that they could nest repeatedly.  e.g.
-			'periods' => array(
-				'class' => 'GLALineItemsLink',
-				'linkfields' => array(
-					'id' => 'line_items_id'
-				),
-				'child' => array(
-					'class' => 'glaClass',
-					'linkfields' => array(
-						'GL_accounts_id' => 'id'
-					),
-					'child' => array(
-						'class' => 'periodClass',
-						'linkfields => array(
-							'periods_id' => 'id'
-						)
-					)
-				)
-			)
 */
