@@ -50,8 +50,6 @@ abstract class dbRecord{
 	protected $_mysqli;
 	protected $_links;
 
-	abstract protected function _initialize();
-
 	public $settings;
 	function __construct(){
 		global $mysqli;
@@ -72,6 +70,21 @@ abstract class dbRecord{
 			throw new Exception($errMsg);
 		}
 	}
+
+        protected function _initialize(){
+		$className = get_called_class();
+		$definitions = array(
+			'name' => '_tableName', 
+			'keys' => '_keys',
+			'fields' => '_fields',
+			'links' => '_links'
+		);
+		foreach($definitions as $name => $internalName){
+			if(array_key_exists($name, $className::$structure)){
+				$this->$internalName = $className::$structure[$name];
+			}
+		}
+        }
 
 	// massage the initialization specs, handling aliases, max string lengths
 	private function _postInitialize(){
@@ -349,7 +362,10 @@ abstract class dbRecord{
 		// if this exists in our _links array, then find the corresponding record(s).
 		if(array_key_exists($func, $this->_links)){
 			return $this->linkedRecords($this->_links[$func]);
-
+		}else if(array_key_exists($func, $this->_aliasMap)){
+			return $this->getField($func);
+		}else if(in_array($func, $this->_aliasMap)){
+			return $this->getField($func);
 		}else{
 			$prefix = substr($func, 0, 3);
 			if($prefix == 'get'){
@@ -586,12 +602,6 @@ abstract class dbRecord{
 		return $rval;
 	}
 
-	/* FIXME - these next two functions should be migrated to values in the $settings array */
-	// get the table name
-	public function getTableName(){
-		return $this->_tableName;
-	}
-
 	// get the record status
 	public function isNewRecord(){
 		return $this->_isNewRecord;
@@ -680,17 +690,9 @@ abstract class dbRecord{
 	// retrieveAll returns an array of objects representing each record in the
 	// table.
 	public static function retrieveAll(){
+		global $mysqli;
 		$className = get_called_class();
-		$temp = new $className();
-		return $temp->_retrieve_all_records();
-	}
-
-	public function _retrieve_all_records(){
-		// manually build the records instead of callling the dbRecord construct to build them.
-		// This is done to optimize speed.
-		$className = get_called_class();
-		$q = $this->_mysqli->query("SELECT * FROM `" . $this->_tableName . "`");
-
+		$q = $mysqli->query("SELECT * FROM `" . $className::$structure['name'] . "`");
 		$rval = [];
 		while($row = $q->fetch_assoc()){			
 			$obj = new $className();
@@ -718,6 +720,7 @@ abstract class dbRecord{
 
 	// --------------------------------------------------
 	// retrieve private settings available
+	// FIXME  --- DEPRECATED.  Should instead be referring to the static variable $structure
 	public static function getSettings(){
 		$className = get_called_class();
 		$temp = new $className();
@@ -797,18 +800,18 @@ abstract class dbRecord{
 /** an example table usage **/
 /*
 class example extends dbRecord{
-        protected function _initialize(){
+	public static $structure = array(
 		// the actual name of the database table
-                $this->_tableName = 'users';
+                'name' => 'users',
 
 		// the names of the key fields in the table.  If you have multiple keys (e.g. a
 		// link table), then they must all included in the _keys array.
-                $this->_keys = array('id');
+                'keys' => array('id'),
 
 		// an array defining the fields in the table, with the keys being the database
 		// field names, and the values being arrays of parameters. The only mandatory
 		// parameter is "type", defining the datatype for each field.
-                $this->_fields = array(
+                'fields' => array(
                         'id' => array(
                                 'type' => 'INTEGER', // the data type of this field
                                 'default' => 0, // the default value that should be assigned to this field
@@ -833,13 +836,13 @@ class example extends dbRecord{
 				'rounding' => 2, // the number of digits to which the number should be rounded
 				'default' => 2.72 // the default field that should be set on the record.  Does not have to match the database default.
 			)
-                );
+                ),
 
 		// Note that links can point to multiple records if needed.  If the link
 		// conditions only match one record, then that record will be returned.  If it
 		// matches multilpe records, then they will be returned in an array.  If no
 		// records match, null is returned.
-		$this->_links = array(
+		'links' => array(
 			'parent' => array(
 				'class' => 'example',  // <-- the class of dbRecord extension that this link points to
 				'linkfields' => array( // <-- an array of fields linking this record to the linked one
@@ -901,8 +904,8 @@ class example extends dbRecord{
 			// setting would give you only one instance of the permission.  If the
 			// 'allow_duplicates' flag is added, then it can show up multiple times in the
 			// resulting array.
-		);
-        }
+		)
+        );
 
 	// an example scrubber function
 	public function _scrub_examplefield($val){
