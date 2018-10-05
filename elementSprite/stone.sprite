@@ -1,0 +1,53 @@
+{
+	"image" : "images/stonetiles.png",
+	"frameWidth" : 6,
+	"frameHeight" : 6,
+	"centerx" : 3,
+	"centery" : 3,
+	"frames" : {
+		"0" : { "x" : 0, "y" : 0, "width" : 6, "height" : 6 },
+		"1" : { "x" : 0, "y" : 1, "width" : 6, "height" : 6 },
+		"2" : { "x" : 0, "y" : 2, "width" : 6, "height" : 6 },
+		"3" : { "x" : 0, "y" : 3, "width" : 6, "height" : 6 },
+		"4" : { "x" : 0, "y" : 4, "width" : 6, "height" : 6 },
+		"5" : { "x" : 0, "y" : 5, "width" : 6, "height" : 6 },
+		"6" : { "x" : 1, "y" : 0, "width" : 6, "height" : 6 },
+		"7" : { "x" : 1, "y" : 1, "width" : 6, "height" : 6 },
+		"8" : { "x" : 1, "y" : 2, "width" : 6, "height" : 6 },
+		"9" : { "x" : 1, "y" : 3, "width" : 6, "height" : 6 },
+		"10" : { "x" : 1, "y" : 4, "width" : 6, "height" : 6 },
+		"11" : { "x" : 1, "y" : 5, "width" : 6, "height" : 6 },
+		"12" : { "x" : 2, "y" : 0, "width" : 6, "height" : 6 },
+		"13" : { "x" : 2, "y" : 1, "width" : 6, "height" : 6 },
+		"14" : { "x" : 2, "y" : 2, "width" : 6, "height" : 6 },
+		"15" : { "x" : 2, "y" : 3, "width" : 6, "height" : 6 },
+		"16" : { "x" : 2, "y" : 4, "width" : 6, "height" : 6 },
+		"17" : { "x" : 2, "y" : 5, "width" : 6, "height" : 6 },
+		"18" : { "x" : 3, "y" : 0, "width" : 6, "height" : 6 },
+		"19" : { "x" : 3, "y" : 1, "width" : 6, "height" : 6 },
+		"20" : { "x" : 3, "y" : 2, "width" : 6, "height" : 6 },
+		"21" : { "x" : 3, "y" : 3, "width" : 6, "height" : 6 },
+		"22" : { "x" : 3, "y" : 4, "width" : 6, "height" : 6 },
+		"23" : { "x" : 3, "y" : 5, "width" : 6, "height" : 6 },
+		"24" : { "x" : 4, "y" : 0, "width" : 6, "height" : 6 },
+		"25" : { "x" : 4, "y" : 1, "width" : 6, "height" : 6 },
+		"26" : { "x" : 4, "y" : 2, "width" : 6, "height" : 6 },
+		"27" : { "x" : 4, "y" : 3, "width" : 6, "height" : 6 },
+		"28" : { "x" : 4, "y" : 4, "width" : 6, "height" : 6 },
+		"29" : { "x" : 4, "y" : 5, "width" : 6, "height" : 6 },
+		"30" : { "x" : 5, "y" : 0, "width" : 6, "height" : 6 },
+		"31" : { "x" : 5, "y" : 1, "width" : 6, "height" : 6 },
+		"32" : { "x" : 5, "y" : 2, "width" : 6, "height" : 6 },
+		"33" : { "x" : 5, "y" : 3, "width" : 6, "height" : 6 },
+		"34" : { "x" : 5, "y" : 4, "width" : 6, "height" : 6 },
+		"35" : { "x" : 5, "y" : 5, "width" : 6, "height" : 6 }
+	},
+	"sequences" : {
+		"test" : {
+			"frames" : [
+				"0", "2", "0", "3"
+			],
+			"framerate" : 60
+		}
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"image" : "images/sandTexture.png",
+	"frameWidth" : 6,
+	"frameHeight" : 6,
+	"centerx" : 3,
+	"centery" : 3,
+	"frames" : {
+		"0" : { "x" : 0, "y" : 0, "width" : 6, "height" : 6 }
+	}
+}
