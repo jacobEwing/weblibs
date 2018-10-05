@@ -6,37 +6,57 @@ function trim(stringToTrim) {
 
 var spriteClass = function(set){
 	this.set = set;
-	this.frame = null;
-	this.image = $('<img src="' + set.image + '">');
-	this.element = $('<div></div>');
-	this.width = this.height = this.x = this.y = 0;
-	this.centerx = this.centery = 0;
-	this.scale = 1;
-	this.currentFrame = null;
-	this.currentSequence = null;
+	for(var n in spriteClass.defaults){
+		this[n] = spriteClass.defaults[n];
+	}
+	if(set.image){
+		this.image = set.image.cloneNode();
+	}else{
+		throw "spriteClass: Set has no image defined";
+	}
+	this.element = document.createElement('div');
 
-	this.image.css({
-		'position': 'absolute',
-		'left': this.y,
-		'top': this.x
-	});
-	this.element.append(this.image);
-	this.element.css({
-		'position':'absolute',
-		'width': this.width + 'px',
-		'height': this.height + 'px',
-		'left': this.x + 'px',
-		'top': this.y + 'px',
-		'overflow': 'hidden'
-	});
+	this.imageWidth = this.image.width;
+	this.imageHeight = this.image.height;
+
+	this.image.style.position = 'absolute';
+	this.image.style.left = this.position.x;
+	this.image.style.top = this.position.y;
+
+	this.element.appendChild(this.image);
+
+	
+	this.element.style.position = 'absolute';
+	this.element.style.width =  this.frameWidth + 'px';
+	this.element.style.height = this.frameHeight + 'px';
+	this.element.style.left = this.position.x + 'px';
+	this.element.style.top = this.position.y + 'px';
+	this.element.style.overflow = 'hidden';
+
 	this.setFrameSize(this.set.frameWidth, this.set.frameHeight);
+
 };
 
-
-spriteClass.prototype.remove = function(){
-	this.image.remove();
-	this.element.remove();
+spriteClass.defaults = {
+	frame: null,
+	frameWidth: 0,
+	frameHeight: 0,
+	position: {x : 0, y : 0},
+	rotation: 0,
+	centerx : 0,
+	centery : 0,
+	currentFrame : null,
+	currentSequence : null
 };
+
+spriteClass.prototype.rotate = function(angle){
+	this.rotation += angle;
+	this.element.style.transform = 'rotate(' + this.rotation + 'rad)';
+}
+
+spriteClass.prototype.detach = function(){
+	this.element.parentNode.removeChild(this.element);
+}
 
 spriteClass.prototype.setFrame = function(framename){
 	framename = trim(framename).toLowerCase();
@@ -49,14 +69,61 @@ spriteClass.prototype.setFrame = function(framename){
 	}
 };
 
-// draw a particular frame at a particular location (if specified).  That frame and it's contents are not managed by the sprite
-// returns the wrapping element of the drawn frame
+// draws an random zone of the sprite's image, ignoring frames
+spriteClass.prototype.drawRandomArea = function(target, drawx, drawy, width, height){
+	
+	width *= 1;
+	width = width > this.imageWidth ? this.imageWidth : (width < 0 ? 0 : width);
+
+	height *= 1;
+	height = height > this.imageHeight ? this.imageHeight : (height < 0 ? 0 : height);
+
+	if(width == 0 || height == 0) return;
+
+	var x = Math.floor(Math.random() * (this.imageWidth - width));
+	var y = Math.floor(Math.random() * (this.imageHeight - height));
+
+	this.drawArea(target, drawx, drawy, x, y, width, height);
+
+};
+
+spriteClass.prototype.drawArea = function(target, drawx, drawy, x, y, width, height){
+	var style = {
+		'width' :  width * this.scale + 'px',
+		'height' : height * this.scale + 'px',
+		'overflow' : 'hidden',
+		'position' : 'absolute',
+		'display' : 'inline-block',
+		'left' : drawx + 'px',
+		'top' : drawy + 'px'
+	};
+
+	if(this.rotation != 0){
+		style.transform = "rotate(" + this.rotation + "rad)";
+	}
+	
+	var picture = document.createElement('div');
+	var img = this.image.cloneNode();
+	for(var n in style){
+		picture.style[n] = style[n];
+	}
+	picture.appendChild(img);
+	img.style.position = 'absolute';
+	img.style.width = this.image.width * this.scale + 'px';
+	img.style.height = this.image.height * this.scale + 'px';
+	img.style.left = -(x * this.scale) + 'px';
+	img.style.top = -(y * this.scale) + 'px';
+
+	target.appendChild(picture);
+}
+
+
 spriteClass.prototype.drawFrame = function(target, framename, drawx, drawy){
 	if(this.set.frames[framename] == undefined) return false;
 	var frame = this.set.frames[framename];
 	var style = {
-		'width' : frame.width,
-		'height' : frame.height,
+		'width' : frame.width * this.scale + 'px',
+		'height' : frame.height * this.scale + 'px',
 		'overflow' : 'hidden'
 	};
 	if(drawx == undefined && drawy == undefined){
@@ -69,28 +136,74 @@ spriteClass.prototype.drawFrame = function(target, framename, drawx, drawy){
 		style['top'] = drawy + 'px';
 		style['position'] = 'absolute';
 	}
-	var picture = $('<div></div>');
-	var img = $('<img src="' + this.set.image + '">');
+	
+	var picture = document.createElement('div');
+	var img = this.image.cloneNode();
+	for(var n in style){
+		picture.style[n] = style[n];
+	}
+	picture.appendChild(img);
+	img.style.position = 'absolute';
+	img.style.width = this.image.width * this.scale + 'px';
+	img.style.height = this.image.height * this.scale + 'px';
+	img.style.left = -(frame.x * this.scale) + 'px';
+	img.style.top = -(frame.y * this.scale) + 'px';
 
-	picture.css(style);
-	picture.append(img);
-	img.css({
-		'position': 'absolute',
-		'left': -(frame.x * this.scale) + 'px',
-		'top': -(frame.y * this.scale) + 'px'
-	});
-
-	target.append(picture);
+	target.appendChild(picture);
 	return picture;
 };
 
+
 spriteClass.prototype.setFrameSize = function(w, h){
-	this.width = w;
-	this.height = h;
-	this.element.css({
-		width: this.width + 'px',
-		height: this.height + 'px'
-	});
+	this.frameWidth = w;
+	this.frameHeight = h;
+	this.element.style.width = this.frameWidth + 'px';
+	this.element.style.height = this.frameHeight + 'px';
+};
+
+
+spriteClass.prototype.refreshFrame = function(){
+	this.image.style.position = 'absolute';
+	this.image.style.left = -(this.frame.x * this.scale) + 'px';
+	this.image.style.top = -(this.frame.y * this.scale) + 'px';
+};
+
+spriteClass.prototype.drawFrame = function(target, framename, drawx, drawy){
+	if(this.set.frames[framename] == undefined) return false;
+	var frame = this.set.frames[framename];
+	var style = {
+		'width' : frame.width * this.scale + 'px',
+		'height' : frame.height * this.scale + 'px',
+		'overflow' : 'hidden'
+	};
+	if(this.rotation != 0){
+		style.transform = "rotate(" + this.rotation + "rad)";
+	}
+	if(drawx == undefined && drawy == undefined){
+		style['position'] = 'relative';
+		style['display'] = 'inline-block';
+	}else{
+		if(drawx == undefined) drawx = 0;
+		if(drawy == undefined) drawy = 0;
+		style['left'] = drawx + 'px';
+		style['top'] = drawy + 'px';
+		style['position'] = 'absolute';
+	}
+	
+	var picture = document.createElement('div');
+	var img = this.image.cloneNode();
+	for(var n in style){
+		picture.style[n] = style[n];
+	}
+	picture.appendChild(img);
+	img.style.position = 'absolute';
+	img.style.width = this.image.width * this.scale + 'px';
+	img.style.height = this.image.height * this.scale + 'px';
+	img.style.left = -(frame.x * this.scale) + 'px';
+	img.style.top = -(frame.y * this.scale) + 'px';
+
+	target.appendChild(picture);
+	return picture;
 };
 
 spriteClass.prototype.setScale = function(newScale){
@@ -100,65 +213,48 @@ spriteClass.prototype.setScale = function(newScale){
 		this.centery = this.frame.centery;
 	}
 	this.scale = newScale;
-	this.image.css({
-		width: (this.set.imageWidth * this.scale) + 'px',
-		height: (this.set.imageHeight * this.scale) + 'px'
-	});
-	// also need to adjust our element's position, as that will be dependent on scale when we have a center point other than 0,0
-	this.element.css({
-		'left': (this.x - this.centerx * this.scale) + 'px',
-		'top': (this.y - this.centery * this.scale) + 'px'
-	});
-	this.setFrameSize(this.frame.width * this.scale, this.frame.height * this.scale);
-	this.refreshFrame();
+
+	// also need to adjust our element's position, as that will be
+	// dependent on scale when we have a center point other than 0,0
+	this.element.style.left = (this.position.x - this.centerx * this.scale) + 'px';
+	this.element.style.top = (this.position.y - this.centery * this.scale) + 'px';
+	
+	this.image.style.width = this.image.width * this.scale + 'px';
+	this.image.style.height = this.image.height * this.scale + 'px';
+
+	if(this.frame != undefined){
+		this.setFrameSize(this.frame.width * this.scale, this.frame.height * this.scale);
+		this.refreshFrame();
+	}else{
+		this.element.style.width = this.image.width * this.scale + 'px';
+		this.element.style.height = this.image.height * this.scale + 'px';
+	}
 };
 
-spriteClass.prototype.refreshFrame = function(){
-	this.image.css({
-		'position': 'absolute',
-		'left': -(this.frame.x * this.scale) + 'px',
-		'top': -(this.frame.y * this.scale) + 'px'
-	});
-};
-
-spriteClass.prototype.refreshImage = function(){
-	this.image = $('<img src="' + this.set.image + '">');
-	this.element.empty();
-	this.element.append(this.image);
-	this.setScale(this.scale);
-};
-
-spriteClass.prototype.draw = spriteClass.prototype.appendTo = function(target){
-	target.append(this.element);
+spriteClass.prototype.appendTo = function(target){
+	target.appendChild(this.element);
 };
 
 spriteClass.prototype.prependTo = function(target){
-	target.prepend(this.element);
+	//target.prepend(this.element);
+	target.insertBefore(this.element, target.firstChild);
 };
 
-spriteClass.prototype.detach = function(){
-	this.element.detach();
-};
-
-spriteClass.prototype.move = function(dx, dy){
-	this.position(this.x + dx, this.y + dy);
-};
-
-spriteClass.prototype.position = function(x, y){
+spriteClass.prototype.setPosition = function(x, y, useScale){
 	this.centerx = this.centery = 0;
-	if(x != undefined && y != undefined){
-		this.x = x;
-		this.y = y;
-		if(this.frame != undefined){
-			this.centerx = this.frame.centerx;
-			this.centery = this.frame.centery;
-		}
-		this.element.css({
-			'left': (this.x - this.centerx * this.scale) + 'px',
-			'top': (this.y - this.centery * this.scale) + 'px'
-		});
+
+	this.position.x = x;
+	this.position.y = y;
+	if(useScale){
+		this.position.x *= this.scale;
+		this.position.y *= this.scale;
 	}
-	return({'top':this.y, 'left':this.x});
+	if(this.frame != undefined){
+		this.centerx = this.frame.centerx;
+		this.centery = this.frame.centery;
+	}
+	this.element.style.left = (this.position.x - this.centerx * this.scale) + 'px';
+	this.element.style.top = (this.position.y - this.centery * this.scale) + 'px';
 };
 
 spriteClass.prototype.startSequence = function(sequenceName, params){
@@ -170,18 +266,12 @@ spriteClass.prototype.startSequence = function(sequenceName, params){
 		frameRate: this.set.sequences[sequenceName].frameRate,
 		callback: function(){},
 		stepCallback: function(){},
-		iterations: 1,
+		iterations: 1, // how many times it should repeat.  0 means infinitely
 		currentFrame: 0,
 		stop: false,
-		method: 'auto',
+		method: 'auto', // <-- 'auto' means the animation happens automatically.  'manual' means the doSequenceStep function has to be called for each step in the sequence
 		sequence: sequenceName
 	};
-
-	/***** IMPORTANT ****
-	If using this in another program in the future, remember that the "manual" method means that
-	the animation callback will not be called automatically, and the appropriate line above should
-	change the string 'manual' to 'auto' if that behavior is desired, or the parameter passed manually
-	********************/
 
 	if(params != undefined){
 		for(n in params){
@@ -285,189 +375,108 @@ spriteClass.prototype.doSequenceStep = function(params){
 	return params;
 };
 
+////////////////////////////////////////////////////////////////////////
 
-/// a spriteSet is a template from which the sprite instances above are loaded
 var spriteSet = function(){
-	this.frames = [];
-	this.sequences = {};
-	this.defaultFrameRate = 40;
-	this.centerx = this.centery = 0;
-	this.loadingImage = false;
+	for(var n in spriteSet.defaults){
+		this[n] = spriteSet.defaults[n];
+	}
+	if(arguments.length > 0){
+		this.load.apply(this, arguments);
+	}
 };
+
+spriteSet.defaults = {
+	frames : [],
+	frameNames : [],
+	sequences : {},
+	defaultFrameRate : 40,
+	centerx : 0,
+	centery : 0,
+	loadingImage : false,
+	image : null,
+	scale : 1
+};
+
+spriteSet.prototype.setScale = function(scale){
+	this.scale = scale;
+}
 
 spriteSet.prototype.load = function(fileName, callback){
 	var me = this;
-	$.get(fileName, {}, function(result){
-		try{
-			data = JSON.parse(result);
-			me.loadJSON(data, callback);
-		}catch(e){
-			me.loadSimpletext(result, callback);
-		}
-	}, "html");
-};
+	var loc = window.location.pathname;
+	var dir = loc.substring(0, loc.lastIndexOf('/'));
+	var client = new XMLHttpRequest();
 
-spriteSet.prototype.loadSimpletext = function(result, callback){
-	var lines = result.split(';');
-	var parts, n, m;
-	for(n in lines){
-		if(trim(lines[n]).length){
-			parts = lines[n].split(':');
-			switch(trim(parts[0]).toLowerCase()){
-				case 'image':
-					this.setImage(parts[1]);
-					break;
-				case 'framewidth':
-					this.frameWidth = 1 * trim(parts[1]);
-					break;
-				case 'frameheight':
-					this.frameHeight = 1 * trim(parts[1]);
-					break;
-				case 'frame':
-					this.loadFrame(parts[1]);
-					break;
-				case 'sequence':
-					this.loadSequence(parts[1]);
-					break;
-				case 'framerate':
-					this.defaultFrameRate = 1 * trim(parts[1]);
-					break;
-				case 'centerx': case 'cx':
-					this.centerx = 1 * trim(parts[1]);
-					break;
-				case 'centery': case 'cy':
-					this.centery = 1 * trim(parts[1]);
-					break;
+	client.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+
+			try{
+				data = JSON.parse(this.responseText);
+				me.loadJSON(data, callback);
+
+			}catch(e){
+				throw "spriteSet::load: " + e;
 			}
 		}
 	}
-	
-	if(callback != undefined){
-		callback(result);
-	}
+	client.open('GET', dir + '/' + fileName);
+	client.send();
+
 };
 
+// This overly complicated argument processing allows us to go through each
+// argument and wait for it to be processed.  The big advantage here is that we
+// can simply wait for an image to be fully loaded before returning the
+// callback.  Using a callback on each call to this function allows this
+// without getting a huge call stack.
 spriteSet.prototype.loadJSON = function(data, callback){
-	for(var key in data){
+	var me = this;
+	var key = Object.keys(data)[0];
+	var rfunc;
+
+	if(key != undefined){
+		val = data[key];
+		delete data[key];
+		rfunc = function(){setTimeout(me.loadJSON(data, callback), 0);};
 		switch(key){
 			case 'image':
-				this.setImage(data[key]);
+				this.setImage(val, rfunc);
 				break;
 			case 'frameWidth': case 'framewidth':
-				this.frameWidth = 1 * data[key];
+				this.frameWidth = 1 * val;
+				rfunc();
 				break;
 			case 'frameHeight': case 'frameheight':
-				this.frameHeight = 1 * data[key];
+				this.frameHeight = 1 * val;
+				rfunc();
 				break;
 			case 'centerx': case 'cx':
-				this.centerx = 1 * data[key];
+				this.centerx = 1 * val;
+				rfunc();
 				break;
 			case 'centery': case 'cy':
-				this.centery = 1 * data[key];
+				this.centery = 1 * val;
+				rfunc();
 				break;
 			case 'framerate':
-				this.defaultFrameRate = 1 * data[key];
+				this.defaultFrameRate = 1 * val;
+				rfunc();
 				break;
 			case 'frames':
-				this.load_frames(data[key]);
+				this.load_frames(val);
+				rfunc();
 				break;
 			case 'sequences':
-				this.load_sequences(data[key]);
+				this.load_sequences(val);
+				rfunc();
 				break;
+			default:
+				rfunc();
 		}
+	}else if(callback != undefined){
+		callback.call(this, data);
 	}
-
-	if(callback != undefined){
-		callback(result);
-	}
-};
-
-spriteSet.prototype.setFrameSize = function(w, h){
-	this.frameWidth = w;
-	this.frameHeight = h;
-};
-
-spriteSet.prototype.addFrame = function(id, params){
-	var parts, arg, val, n;
-	var newFrame = {
-		'x': 0,
-		'y': 0,
-		'width': this.frameWidth,
-		'height': this.frameHeight,
-		'centerx': this.centerx,
-		'centery': this.centery
-	};
-	for(n in params){
-		switch(trim(n).toLowerCase()){
-			case 'width': case 'height':
-				newFrame[n] = 1 * params[n];
-				break;
-			case 'x': case 'left':
-				newFrame['x'] = 1 * newFrame['x'] + 1 * params[n];
-				break;
-			case 'xoffset':
-				newFrame['x'] = 1 * newFrame['x'] + 1 * params[n];
-				break;
-			case 'y': case 'top':
-				newFrame['y'] = 1 * newFrame['y'] + 1 * params[n];
-				break;
-			case 'yoffset':
-				newFrame['y'] = 1 * newFrame['y'] + 1 * params[n];
-				break;
-			case 'centerx': case 'cx':
-				newFrame['centerx'] = 1 * params[n];
-				break;
-			case 'centery': case 'cy':
-				newFrame['centery'] = 1 * params[n];
-				break;
-		}
-	}
-	this.frames[id] = newFrame;
-};
-// load animation sequences from a string (old method)
-spriteSet.prototype.loadSequence = function(datastr){
-	var sequenceName = undefined;
-	var newSequence = {
-		'frames':[],
-		'frameRate': this.defaultFrameRate
-	};
-	var params = datastr.split(',');
-	var parts, arg, val, n, m;
-	var numParts, numFrames;
-	for(n in params){
-		parts = params[n].split('=');
-		arg = trim(parts[0]).toLowerCase();
-		val = trim(parts[1]);
-		switch(arg){
-			case 'name':
-				sequenceName = val;
-				break;
-			case 'frames':
-				frameSet = val.split(' ');
-				numFrames = 0;
-				for(m in frameSet){
-					parts = frameSet[m].split('*');
-					if(parts.length == 2){
-						numParts = 1 * trim(parts[1]);
-					}else{
-						numParts = 1;
-					}
-					while(numParts > 0){
-						newSequence.frames[numFrames++] = trim(parts[0]);
-						numParts--;
-					}
-				}
-				break;
-			case 'framerate':
-				newSequence.frameRate = 1 * val;
-				break;
-		}
-
-	}
-	if(sequenceName != undefined){
-		this.sequences[sequenceName] = newSequence;
-	}
-
 };
 
 // load animation sequences from a JSON object
@@ -496,55 +505,6 @@ spriteSet.prototype.load_sequences = function(data){
 	}
 };
 
-// load frames from a raw string passed in (old method)
-spriteSet.prototype.loadFrame = function(datastr){
-	var params = datastr.split(',');
-	var parts, arg, val, n;
-	var frameName = undefined;
-	var newFrame = {
-		'x': 0,
-		'y': 0,
-		'width': this.frameWidth,
-		'height': this.frameHeight,
-		'centerx': this.centerx,
-		'centery': this.centery
-	};
-	for(n in params){
-		parts = params[n].toLowerCase().split('=');
-		arg = trim(parts[0]);
-		val = trim(parts[1]);
-		switch(arg){
-			case 'name':
-				frameName = val;
-				break;
-			case 'width': case 'height':
-				newFrame[arg] = 1 * val;
-				break;
-			case 'x':
-				newFrame['x'] += this.frameWidth * val;
-				break;
-			case 'xoffset':
-				newFrame['x'] += 1 * val;
-				break;
-			case 'y':
-				newFrame['y'] += this.frameHeight * val;
-				break;
-			case 'yoffset':
-				newFrame['y'] += 1 * val;
-				break;
-			case 'centerx': case 'cx':
-				newFrame['centerx'] = 1 * val;
-				break;
-			case 'centery': case 'cy':
-				newFrame['centery'] = 1 * val;
-				break;
-		}
-	}
-	if(frameName != undefined){
-		this.frames[frameName] = newFrame;
-	}
-};
-
 // load frames from a JSON object passed in
 spriteSet.prototype.load_frames = function(data){
 	var name, arg;
@@ -557,6 +517,7 @@ spriteSet.prototype.load_frames = function(data){
 			'centerx': this.centerx,
 			'centery': this.centery
 		};
+		this.frameNames[this.frameNames.length] = name;
 		for(arg in data[name]){
 			switch(arg){
 				case 'width': case 'height':
@@ -586,26 +547,10 @@ spriteSet.prototype.load_frames = function(data){
 	}
 };
 
-// set the image and cache it
-spriteSet.prototype.setImage = function(file){
-	this.loadingImage = true;
-	this.image = file;
-	var cacheDiv = $('<div><div>');
-	cacheDiv.css({
-		width:'0px',
-		height: '0px',
-		position: 'absolute',
-		top: '-1px',
-		left: '-1px',
-		overflow: 'hidden'
-	});
-	$('body').append(cacheDiv);
-	var imgElement = $('<img src="' + file + '">');
-	imgElement.load(function(){
-		this.loadingImage = false;
-	});
-	cacheDiv.append(imgElement);
-
-	this.imageWidth = imgElement.width();
-	this.imageHeight = imgElement.height();
+spriteSet.prototype.setImage = function(filename, callback){
+	this.image = new Image();
+	if(typeof(callback) == 'function'){
+		this.image.onload = callback;
+	}
+	this.image.src = filename;
 };

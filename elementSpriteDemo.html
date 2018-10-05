@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+	<style type="text/css">
+		#gameMargin{
+			position: relative;
+			margin-top: 1em;
+			width: 100%;
+			height: 100%;
+		}
+
+		#playArea{
+			image-rendering: pixelated;
+			image-rendering: -moz-crisp-edges;
+			image-rendering: crisp-edges;
+			position: relative;
+			margin: auto;
+			border: 1px solid #000;
+			width: 600px;
+			height: 400px;
+		}
+	</style>
+	<script src="elementSprite.js" type="text/javascript"></script>
+	<script type="text/javascript">
+		var gameScale = 6;
+		var sprites = {};
+
+		function initialize(step){
+			if(step == undefined) step = 'load stone sprite';
+			switch(step){
+				case 'load stone sprite':
+					sprites.stone = new spriteSet('stone.sprite', function(){
+						setTimeout(function(){
+							initialize('load floor sprite');
+						}, 1);
+					});
+					break;
+				case 'load floor sprite':
+					sprites.ground = new spriteSet('ground.sprite', function(){
+						setTimeout(function(){
+							initialize('finish');
+						}, 1);
+					});
+					break;
+				case 'finish':
+					playDemo();
+			}
+		}
+
+		window.onload = function(){
+			initialize();
+		};
+
+		function playDemo(){
+			var playArea = document.getElementById('playArea');
+			var tile = new spriteClass(sprites.stone);
+			tile.setScale(gameScale);
+			//tile.rotation = 15;
+			setInterval(function(){
+				//tile.rotate(.1);
+				tile.drawFrame(playArea, Math.floor(Math.random() * 36), 10, 10);
+				//tile.drawRandomArea(document.getElementById('playArea'), 10, 10, 6, 6);
+			}, 100);
+
+			var ground = new spriteClass(sprites.ground);
+			ground.setScale(gameScale);
+			ground.rotation = 1;
+			setInterval(function(){
+				//ground.drawCell(29);
+				ground.drawRandomArea(playArea, 100, 10, 6, 6);
+			}, 100);
+
+
+			// show the usage of a sequence defined in the sprite
+			var sequenceDemo = new spriteClass(sprites.stone);
+			sequenceDemo.setScale(gameScale);
+			sequenceDemo.prependTo(playArea, 0, 10, 10);
+			sequenceDemo.setPosition(200, 10);
+			sequenceDemo.startSequence('test', {'iterations' : 0});
+
+			// show the usage of a sequence defined in the sprite
+			var rotsequenceDemo = new spriteClass(sprites.stone);
+			var ang = 0;
+			rotsequenceDemo.setScale(gameScale);
+			rotsequenceDemo.prependTo(playArea, 0, 10, 10);
+			rotsequenceDemo.setPosition(300, 10);
+			rotsequenceDemo.startSequence('test', {'iterations' : 0, 'method' : 'manual'});
+			setInterval(function(){
+				rotsequenceDemo.doSequenceStep();
+				ang += .1;
+				rotsequenceDemo.rotate(Math.sin(ang) / 10);
+			}, 80);
+		}
+
+	</script>
+</head>
+<body>
+	<div id="gameMargin">
+		<div id="playArea">
+		</div>
+	</div>
+</body>
+</html>
