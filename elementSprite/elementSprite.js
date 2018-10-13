@@ -1,7 +1,6 @@
-function trim(stringToTrim) {
-	// make sure it is indeed a string:
-	stringToTrim = ' ' + stringToTrim;
-	return stringToTrim.replace(/^\s+|\s+$/g,"");
+// let's define trim as we need it here
+if(typeof trim == "undefined"){
+	trim = function(stringToTrim){ return (' ' + stringToTrim).replace(/^\s+|\s+$/g,""); };
 }
 
 var spriteClass = function(set){
