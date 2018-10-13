@@ -58,34 +58,13 @@ function rel_ang(/*x1, y1, x2, y2*/){
 	hyp = Math.sqrt(deltax * deltax + deltay * deltay);
 	/********* figure out the value for alpha *********/
 	if(x2 == x1){
-		if(y2 > y1){
-			alpha = Math.PI;
-		}else{
-			alpha = 0;
-		}
-
+		alpha = y2 > y1 ? Math.PI : 0;
 	}else if(y2 == y1){
-		if(x2 < x1){
-			alpha = 3 * Math.PI / 2; 
-		}else{
-			alpha = Math.PI / 2;
-		}
+		alpha = (x2 < x1 ? 3 : 1) * Math.PI / 2
 	}else if(x2 > x1){
-		if(y2 < y1){
-			alpha = Math.PI - Math.acos(deltay / hyp);
-		}else if(y2 > y1){
-			alpha = Math.PI - Math.acos(deltay / hyp); 
-		}else{
-			alpha = 0;
-		}
+		alpha = y2 == y1 ? 0 : Math.PI - Math.acos(deltay / hyp);
 	}else if(x2 < x1){
-		if(y2 < y1){
-			alpha = 2 * Math.PI - Math.acos(-deltay / hyp);
-		}else if(y2 > y1){
-			alpha = 2 * Math.PI - Math.acos(-deltay / hyp); 
-		}else{
-			alpha = 0;
-		}
+		alpha = y2 == y1 ? 0 : 2 * Math.PI - Math.acos(-deltay / hyp);
 	}   
 
 	return alpha;
