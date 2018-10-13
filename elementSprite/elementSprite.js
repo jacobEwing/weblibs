@@ -365,7 +365,6 @@ spriteSet.defaults = {
 	defaultFrameRate : 40,
 	centerx : 0,
 	centery : 0,
-	loadingImage : false,
 	image : null,
 	scale : 1
 };
@@ -376,25 +375,31 @@ spriteSet.prototype.setScale = function(scale){
 
 spriteSet.prototype.load = function(fileName, callback){
 	var me = this;
-	var loc = window.location.pathname;
-	var dir = loc.substring(0, loc.lastIndexOf('/'));
-	var client = new XMLHttpRequest();
+	
+	if(typeof(fileName) == 'object'){
+		// this allows passing in a raw json object instead of a file
+		me.loadJSON(fileName, callback);
+	} else {
 
-	client.onreadystatechange = function() {
-		if (this.readyState == 4 && this.status == 200) {
+		var loc = window.location.pathname;
+		var dir = loc.substring(0, loc.lastIndexOf('/'));
+		var client = new XMLHttpRequest();
 
-			try{
-				data = JSON.parse(this.responseText);
-				me.loadJSON(data, callback);
+		client.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
 
-			}catch(e){
-				throw "spriteSet::load: " + e;
+				try{
+					data = JSON.parse(this.responseText);
+					me.loadJSON(data, callback);
+
+				}catch(e){
+					throw "spriteSet::load: " + e;
+				}
 			}
 		}
+		client.open('GET', dir + '/' + fileName);
+		client.send();
 	}
-	client.open('GET', dir + '/' + fileName);
-	client.send();
-
 };
 
 // This overly complicated argument processing allows us to go through each
