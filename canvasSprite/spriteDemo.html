@@ -32,7 +32,6 @@
 			switch(step){
 				case 'initialize canvas':
 					gameCanvas = document.getElementById('gameCanvas');
-					document.getElementById('gameCanvas').clientWidth
 					gameCanvas.width = window.innerWidth;
 					gameCanvas.height = window.innerHeight;
 					context = gameCanvas.getContext('2d');
@@ -69,9 +68,24 @@
 
 			var iterations = 0;
 			stone.setFrame(0);
+
 			
 
+			// drawRandomArea demo
+			stone.scale = 30;
+			animFunc = function(){
+
+				stone.rotate(0.1);
+				context.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+				stone.drawRandomArea(context, 100, 100, 8, 8); 
+				requestAnimationFrame(animFunc);
+			}
+			requestAnimationFrame(animFunc);
+			
+
+			
 			// child-parent demo
+			/*
 			childStone = new cSprite(sprites.stone);
 			parentStone.setFrame(Math.floor(Math.random() * 36));
 			childStone.setFrame(Math.floor(Math.random() * 36));
@@ -91,6 +105,7 @@
 				parentStone.draw(context, {scale : 8});
 				requestAnimationFrame(animFunc);
 			}
+			*/
 
 			/*
 			// scaling/rotating demo
