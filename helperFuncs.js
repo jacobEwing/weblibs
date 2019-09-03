@@ -25,6 +25,39 @@ function randomText(numChars){
 	return returnval;
 }
 
+// does a quicksort on an array of values, with optional custom comparison function. (default is numeric ascending)
+function quickSort(sourcelist, comparison){
+	if(comparison == undefined){
+		comparison = function(a, b){ return a > b ? true : false};
+	}
+
+	var list = sourcelist.slice(0);
+	if(list.length <= 1) return list
+
+	var n, middle;
+	middle = list.pop();
+	var greater = Array(), lesser = Array();
+	for(n = 0; n < list.length; n++){
+		if(comparison(middle, list[n])){
+			lesser.push(list[n]);
+		}else{
+			greater.push(list[n]);
+		}
+	}
+	if(lesser.length > 1){
+		lesser = quickSort(lesser, comparison);
+	}
+	if(greater.length > 1){
+		greater = quickSort(greater, comparison);
+	}
+	
+	lesser.push(middle);
+	list = lesser.concat(greater);
+	return list;
+
+}
+
+
 // an object allowing global references to objects
 var globalRefs = {
 	refs: [],
@@ -40,7 +73,7 @@ var globalRefs = {
 
 // tell me if it's an array
 function is_array(input){
-	return typeof(input)=='object'&&(input instanceof Array);
+	return typeof(input) == 'object' && (input instanceof Array);
 }
 
 // precede backslash characters and double quotes with backslash characters
