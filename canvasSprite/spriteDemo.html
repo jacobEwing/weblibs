@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+	<style type="text/css">
+
+		#gameCanvas{
+			image-rendering: pixelated;
+			image-rendering: -moz-crisp-edges;
+			image-rendering: crisp-edges;
+			position: relative;
+			border: 1px solid #000;
+
+
+			padding-left: 0;
+			padding-right: 0;
+			margin: 0;
+			display: block;
+			width: 100%;
+			height: 100%;
+
+		}
+	</style>
+	<script src="canvasSprite.js" type="text/javascript"></script>
+	<script type="text/javascript">
+		var gameScale = 6;
+		var sprites = {};
+		var gameCanvas, context;
+
+		function initialize(step){
+			if(step == undefined) step = 'initialize canvas';
+
+			switch(step){
+				case 'initialize canvas':
+					gameCanvas = document.getElementById('gameCanvas');
+					document.getElementById('gameCanvas').clientWidth
+					gameCanvas.width = window.innerWidth;
+					gameCanvas.height = window.innerHeight;
+					context = gameCanvas.getContext('2d');
+
+					// make sure the scaling is not blurred
+					context.webkitImageSmoothingEnabled = false;
+					context.mozImageSmoothingEnabled = false;
+					context.imageSmoothingEnabled = false; /// future
+
+					setTimeout(function(){
+						initialize('load stone sprite');
+					}, 1);
+					break;
+					
+				case 'load stone sprite':
+					sprites.stone = new spriteSet('stone.sprite', function(){
+						setTimeout(function(){
+							initialize('finish');
+						}, 1);
+					});
+					break;
+				case 'finish':
+					playDemo();
+			}
+		}
+
+		window.onload = function(){
+			initialize();
+		};
+
+		function playDemo(){
+			var stone = new cSprite(sprites.stone);
+			var parentStone = new cSprite(sprites.stone);
+
+			var iterations = 0;
+			stone.setFrame(0);
+			
+
+			// child-parent demo
+			childStone = new cSprite(sprites.stone);
+			parentStone.setFrame(Math.floor(Math.random() * 36));
+			childStone.setFrame(Math.floor(Math.random() * 36));
+			parentStone.setPosition(100, 100, true);
+			parentStone.attach(childStone);
+			childStone.setPosition(-10, 0, false);
+			var ang = 0;
+			animFunc = function(){
+				ang += .0125;
+				parentStone.rotate((Math.cos(2 * ang)) / 8);
+				childStone.rotate((Math.sin(2 * ang)) / 8);
+				parentStone.setPosition(
+					gameCanvas.width / 2,
+					gameCanvas.height / 2
+				);
+				context.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+				parentStone.draw(context, {scale : 8});
+				requestAnimationFrame(animFunc);
+			}
+
+			/*
+			// scaling/rotating demo
+			var animFunc = function(){
+				var n = 0;
+				iterations++;
+				stone.rotate(.1);
+
+				context.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+				for(var x = 300; x < 900; x += 60){
+					for(var y = 200; y < 800; y += 60){
+						stone.setFrame((n++) % 36);
+						stone.draw(context, {scale : 8 + 6 * Math.sin(stone.rotation + x + y), x : x, y : y});
+					}
+				}
+				requestAnimationFrame(animFunc);
+			};
+			*/
+			requestAnimationFrame(animFunc);
+		}
+
+	</script>
+</head>
+<body>
+	<canvas id="gameCanvas"></canvas>
+</body>
+</html>

@@ -1,7 +1,6 @@
-function trim(stringToTrim) {
-	// make sure it is indeed a string:
-	stringToTrim = ' ' + stringToTrim;
-	return stringToTrim.replace(/^\s+|\s+$/g,"");
+// let's define trim as we need it here
+if(typeof trim == "undefined"){
+	trim = function(stringToTrim){ return (' ' + stringToTrim).replace(/^\s+|\s+$/g,""); };
 }
 
 var spriteClass = function(set){
@@ -60,13 +59,15 @@ spriteClass.prototype.detach = function(){
 
 spriteClass.prototype.setFrame = function(framename){
 	framename = trim(framename).toLowerCase();
-
+	var rval = 0;
 	if(this.set.frames[framename] != undefined){
 		this.frame = this.set.frames[framename];
 		this.currentFrame = framename;
 		this.setFrameSize(this.frame.width * this.scale, this.frame.height * this.scale);
 		this.refreshFrame();
+		rval = 1;
 	}
+	return rval;
 };
 
 // draws an random zone of the sprite's image, ignoring frames
@@ -118,42 +119,6 @@ spriteClass.prototype.drawArea = function(target, drawx, drawy, x, y, width, hei
 }
 
 
-spriteClass.prototype.drawFrame = function(target, framename, drawx, drawy){
-	if(this.set.frames[framename] == undefined) return false;
-	var frame = this.set.frames[framename];
-	var style = {
-		'width' : frame.width * this.scale + 'px',
-		'height' : frame.height * this.scale + 'px',
-		'overflow' : 'hidden'
-	};
-	if(drawx == undefined && drawy == undefined){
-		style['position'] = 'relative';
-		style['display'] = 'inline-block';
-	}else{
-		if(drawx == undefined) drawx = 0;
-		if(drawy == undefined) drawy = 0;
-		style['left'] = drawx + 'px';
-		style['top'] = drawy + 'px';
-		style['position'] = 'absolute';
-	}
-	
-	var picture = document.createElement('div');
-	var img = this.image.cloneNode();
-	for(var n in style){
-		picture.style[n] = style[n];
-	}
-	picture.appendChild(img);
-	img.style.position = 'absolute';
-	img.style.width = this.image.width * this.scale + 'px';
-	img.style.height = this.image.height * this.scale + 'px';
-	img.style.left = -(frame.x * this.scale) + 'px';
-	img.style.top = -(frame.y * this.scale) + 'px';
-
-	target.appendChild(picture);
-	return picture;
-};
-
-
 spriteClass.prototype.setFrameSize = function(w, h){
 	this.frameWidth = w;
 	this.frameHeight = h;
@@ -166,6 +131,8 @@ spriteClass.prototype.refreshFrame = function(){
 	this.image.style.position = 'absolute';
 	this.image.style.left = -(this.frame.x * this.scale) + 'px';
 	this.image.style.top = -(this.frame.y * this.scale) + 'px';
+	this.element.style.marginLeft = this.frame.drawOffset.x * this.scale + 'px';
+	this.element.style.marginTop = this.frame.drawOffset.y * this.scale + 'px';
 };
 
 spriteClass.prototype.drawFrame = function(target, framename, drawx, drawy){
@@ -174,6 +141,8 @@ spriteClass.prototype.drawFrame = function(target, framename, drawx, drawy){
 	var style = {
 		'width' : frame.width * this.scale + 'px',
 		'height' : frame.height * this.scale + 'px',
+		'marginLeft' : frame.drawOffset.x * this.scale + 'px',
+		'marginTop' : frame.drawOffset.y * this.scale + 'px',
 		'overflow' : 'hidden'
 	};
 	if(this.rotation != 0){
@@ -242,7 +211,7 @@ spriteClass.prototype.prependTo = function(target){
 
 spriteClass.prototype.setPosition = function(x, y, useScale){
 	this.centerx = this.centery = 0;
-
+	var offset = {'x' : 0, 'y' : 0};
 	this.position.x = x;
 	this.position.y = y;
 	if(useScale){
@@ -252,6 +221,9 @@ spriteClass.prototype.setPosition = function(x, y, useScale){
 	if(this.frame != undefined){
 		this.centerx = this.frame.centerx;
 		this.centery = this.frame.centery;
+		offset = this.frame.drawOffset;
+		this.element.style.marginLeft = this.frame.drawOffset.x * this.scale + 'px';
+		this.element.style.marginTop = this.frame.drawOffset.y * this.scale + 'px';
 	}
 	this.element.style.left = (this.position.x - this.centerx * this.scale) + 'px';
 	this.element.style.top = (this.position.y - this.centery * this.scale) + 'px';
@@ -393,7 +365,6 @@ spriteSet.defaults = {
 	defaultFrameRate : 40,
 	centerx : 0,
 	centery : 0,
-	loadingImage : false,
 	image : null,
 	scale : 1
 };
@@ -404,25 +375,31 @@ spriteSet.prototype.setScale = function(scale){
 
 spriteSet.prototype.load = function(fileName, callback){
 	var me = this;
-	var loc = window.location.pathname;
-	var dir = loc.substring(0, loc.lastIndexOf('/'));
-	var client = new XMLHttpRequest();
+	
+	if(typeof(fileName) == 'object'){
+		// this allows passing in a raw json object instead of a file
+		me.loadJSON(fileName, callback);
+	} else {
 
-	client.onreadystatechange = function() {
-		if (this.readyState == 4 && this.status == 200) {
+		var loc = window.location.pathname;
+		var dir = loc.substring(0, loc.lastIndexOf('/'));
+		var client = new XMLHttpRequest();
 
-			try{
-				data = JSON.parse(this.responseText);
-				me.loadJSON(data, callback);
+		client.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
 
-			}catch(e){
-				throw "spriteSet::load: " + e;
+				try{
+					data = JSON.parse(this.responseText);
+					me.loadJSON(data, callback);
+
+				}catch(e){
+					throw "spriteSet::load: " + e;
+				}
 			}
 		}
+		client.open('GET', dir + '/' + fileName);
+		client.send();
 	}
-	client.open('GET', dir + '/' + fileName);
-	client.send();
-
 };
 
 // This overly complicated argument processing allows us to go through each
@@ -515,11 +492,12 @@ spriteSet.prototype.load_frames = function(data){
 			'width': this.frameWidth,
 			'height': this.frameHeight,
 			'centerx': this.centerx,
-			'centery': this.centery
+			'centery': this.centery,
+			'drawOffset': {'x' : 0, 'y' : 0}
 		};
 		this.frameNames[this.frameNames.length] = name;
 		for(arg in data[name]){
-			switch(arg){
+			switch(arg.toLowerCase()){
 				case 'width': case 'height':
 					this.frames[name][arg] = 1 * data[name][arg];
 					break;
@@ -540,6 +518,9 @@ spriteSet.prototype.load_frames = function(data){
 					break;
 				case 'centery': case 'cy':
 					this.frames[name]['centery'] = 1 * data[name][arg];
+					break;
+				case 'drawoffset':
+					this.frames[name]['drawOffset'] = data[name][arg];
 					break;
 				
 			}

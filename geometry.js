@@ -1,11 +1,7 @@
 /*****
 An assortment of convenient geometry functions.
-
--- IMPORTANT --
-This is written to depend on the matrixClass class, which is
-defined in matrices.js.  That file must be included with this
-one in order for all of these functions to work.
-
+Note that most of these functions are written to accept some arguments as
+individual values, or as matrixClass objects.  There are exceptions though.
 *****/
 
 // returns the distance between two 2D points
@@ -51,48 +47,27 @@ function rel_ang(/*x1, y1, x2, y2*/){
 		x2 = arguments[1].val(0, 0);
 		y2 = arguments[1].val(0, 1);
 	}
-	
+
 	var hyp, alpha, deltax, deltay;
-	deltax = x2 - x1; 
-	deltay = y2 - y1; 
+	deltax = x2 - x1;
+	deltay = y2 - y1;
 	hyp = Math.sqrt(deltax * deltax + deltay * deltay);
 	/********* figure out the value for alpha *********/
 	if(x2 == x1){
-		if(y2 > y1){
-			alpha = Math.PI;
-		}else{
-			alpha = 0;
-		}
-
+		alpha = y2 > y1 ? Math.PI : 0;
 	}else if(y2 == y1){
-		if(x2 < x1){
-			alpha = 3 * Math.PI / 2; 
-		}else{
-			alpha = Math.PI / 2;
-		}
+		alpha = (x2 < x1 ? 3 : 1) * Math.PI / 2
 	}else if(x2 > x1){
-		if(y2 < y1){
-			alpha = Math.PI - Math.acos(deltay / hyp);
-		}else if(y2 > y1){
-			alpha = Math.PI - Math.acos(deltay / hyp); 
-		}else{
-			alpha = 0;
-		}
+		alpha = y2 == y1 ? 0 : Math.PI - Math.acos(deltay / hyp);
 	}else if(x2 < x1){
-		if(y2 < y1){
-			alpha = 2 * Math.PI - Math.acos(-deltay / hyp);
-		}else if(y2 > y1){
-			alpha = 2 * Math.PI - Math.acos(-deltay / hyp); 
-		}else{
-			alpha = 0;
-		}
-	}   
+		alpha = y2 == y1 ? 0 : 2 * Math.PI - Math.acos(-deltay / hyp);
+	}
 
 	return alpha;
 }
 
 // determine which side of a given line a specified point lies on.
-function side_of_line(){
+function sideOfLine(){
 	var x1, y1, x2, y2, px, py;
 	if(arguments.length == 6){
 		x1 = arguments[0];
@@ -109,9 +84,9 @@ function side_of_line(){
 		px = arguments[2].val(0, 0);
 		py = arguments[2].val(0, 1);
 	}else{
-		throw "side_of_line expects either six or three parameters";
+		throw "sideOfLine expects either six or three parameters";
 	}
-	var a = (px - x1) * (y2 - y1); 
+	var a = (px - x1) * (y2 - y1);
 	var b = (py - y1) * (x2 - x1);
 	return a > b ? 1 : (a < b ? -1 : 0);
 }
@@ -141,6 +116,7 @@ function getConvexHull(points) {
 	return rval;
 }
 
+// as above, this function depends on matrixClass
 function buildConvexHull(minPoint, maxPoint, points) {
 	var hullPoints;
 	var n;
@@ -158,7 +134,7 @@ function buildConvexHull(minPoint, maxPoint, points) {
 			maxD = d;
 			maxIdx = n;
 		}
-	} 
+	}
 
 	if (maxIdx != null) {
 		var maxPt = points.subset(maxIdx, 0, 1, 2);
@@ -167,7 +143,7 @@ function buildConvexHull(minPoint, maxPoint, points) {
 		return hullPoints;
 	} else {
 		return minPoint;
-	}    
+	}
 }
 
 // Get the smallest rectangle surrounding a specified set of points.  Points
@@ -182,7 +158,7 @@ function getSurroundingBox(){
 	if(arguments.length != 1){
 		throw "getSurroundingBox requires one parameter.";
 	}
-	
+
 	if(typeof arguments[0] == 'object'){
 		// we can assume that it's a matrix
 		rval = new matrixClass(2, 2);
@@ -208,4 +184,55 @@ function getSurroundingBox(){
 		rval = [minx, miny, maxx, maxy];
 	}
 	return rval;
+}
+
+// checks to see if the polygon defined by the points in the array "corners"
+// contains the point (x, y).  Note that this ~only~ works for convex polygons
+// FIXME: this currently works only with an d array of corners.  This needs to
+// be fixed to receive matrixClass objects too.
+function polyContains(x, y, corners){
+	var n, m, tally = 0;
+	var numCorners = corners.length;
+	var returnval = false;
+
+	for(n = 0; n < numCorners; n++){
+		m = (n + 1) % numCorners;
+		tally += sideOfLine(
+			corners[n][0], corners[n][1],
+			corners[m][0], corners[m][1],
+			x, y);
+	}
+	if(Math.abs(tally) == numCorners) returnval = true;
+	return returnval;
+}
+
+// returns the point on line segment (x1, y1)-(x2, y2) that is closest to point {px, py}
+// FIXME: needs to be updated to work with matrixClass
+function projectOnSegment(x1, y1, x2, y2, px,py){
+	var returnval = undefined;
+	var u, dx, dy, hyp, projx, projy;
+	dx = x2 - x1;
+	dy = y2 - y1;
+
+	// Note that hyp is not actually the hypotenuse length, but it's square
+	hyp = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+	if(hyp != 0){
+		u = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / hyp;
+		projx = x1 + u * dx;
+		projy = y1 + u * dy;
+		/** now (projx, projy) is the projection of (px, py) onto (x1, y1)-(x2, y2).
+		 * The "if" accounts for vertical and horizontal lines.
+		 **/
+
+		if(x1 != x2){
+			if(Math.sign(projx - x1) != Math.sign(projx - x2)) returnval = {x:projx, y:projy};
+			else if(projx > x2) returnval = {x:x2, y:y2};
+			else if(projx < x1) returnval = {x:x1, y:y1};
+		}else{
+			if(Math.sign(projy - y1) != Math.sign(projy - y2)) returnval = {x:projx, y:projy};
+			else if(projy > y2) returnval = {x:x2, y:y2};
+			else if(projy < y1) returnval = {x:x1, y:y1};
+		}
+	}
+	return returnval;
 }
