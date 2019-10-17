@@ -1,29 +1,31 @@
+var randomText = (function(){
+	var randomTextCache = [], randomTextCount = 0;
+	// returns "numChars" random characters that have not been returned previously
+	return function(numChars){
+		var n, c, i;
+		var returnval = '';
 
-var randomTextCache = [], randomTextCount = 0;
-// returns "numChars" random characters that have not been returned previously
-function randomText(numChars){
-	var n, c, i;
-	var returnval = '';
-
-	// note: this will cause an infinite loop if more than 26^numChars strings are asked for. 
-	do{
-		for(n = 0; n < numChars; n++){
-			i = Math.round(Math.random() * 25);
-			c = String.fromCharCode(65 + i);
-			returnval = returnval + c;
-		}
-		inUse = false;
-		for(n = 0; n < randomTextCount; n++){
-			if(randomTextCache[n] == returnval){
-				inUse = true;
-				break;
+		// note: this will cause an infinite loop if more than 26^numChars strings are asked for. 
+		do{
+			for(n = 0; n < numChars; n++){
+				i = Math.round(Math.random() * 25);
+				c = String.fromCharCode(65 + i);
+				returnval = returnval + c;
 			}
-		}
-	}while(inUse);
-	randomTextCache[randomTextCount] = returnval;
-	randomTextCount++;
-	return returnval;
-}
+			inUse = false;
+			for(n = 0; n < randomTextCount; n++){
+				if(randomTextCache[n] == returnval){
+					inUse = true;
+					break;
+				}
+			}
+		}while(inUse);
+		randomTextCache[randomTextCount] = returnval;
+		randomTextCount++;
+		return returnval;
+	}
+	
+})();
 
 // does a quicksort on an array of values, with optional custom comparison function. (default is numeric ascending)
 function quickSort(sourcelist, comparison){
