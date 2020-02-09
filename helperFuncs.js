@@ -1,29 +1,64 @@
+var randomText = (function(){
+	var randomTextCache = [], randomTextCount = 0;
+	// returns "numChars" random characters that have not been returned previously
+	return function(numChars){
+		var n, c, i;
+		var returnval = '';
 
-var randomTextCache = [], randomTextCount = 0;
-// returns "numChars" random characters that have not been returned previously
-function randomText(numChars){
-	var n, c, i;
-	var returnval = '';
-
-	// note: this will cause an infinite loop if more than 26^numChars strings are asked for. 
-	do{
-		for(n = 0; n < numChars; n++){
-			i = Math.round(Math.random() * 25);
-			c = String.fromCharCode(65 + i);
-			returnval = returnval + c;
-		}
-		inUse = false;
-		for(n = 0; n < randomTextCount; n++){
-			if(randomTextCache[n] == returnval){
-				inUse = true;
-				break;
+		// note: this will cause an infinite loop if more than 26^numChars strings are asked for. 
+		do{
+			for(n = 0; n < numChars; n++){
+				i = Math.round(Math.random() * 25);
+				c = String.fromCharCode(65 + i);
+				returnval = returnval + c;
 			}
+			inUse = false;
+			for(n = 0; n < randomTextCount; n++){
+				if(randomTextCache[n] == returnval){
+					inUse = true;
+					break;
+				}
+			}
+		}while(inUse);
+		randomTextCache[randomTextCount] = returnval;
+		randomTextCount++;
+		return returnval;
+	}
+	
+})();
+
+// does a quicksort on an array of values, with optional custom comparison function. (default is numeric ascending)
+function quickSort(sourcelist, comparison){
+	if(comparison == undefined){
+		comparison = function(a, b){ return a > b ? true : false};
+	}
+
+	var list = sourcelist.slice(0);
+	if(list.length <= 1) return list
+
+	var n, middle;
+	middle = list.pop();
+	var greater = Array(), lesser = Array();
+	for(n = 0; n < list.length; n++){
+		if(comparison(middle, list[n])){
+			lesser.push(list[n]);
+		}else{
+			greater.push(list[n]);
 		}
-	}while(inUse);
-	randomTextCache[randomTextCount] = returnval;
-	randomTextCount++;
-	return returnval;
+	}
+	if(lesser.length > 1){
+		lesser = quickSort(lesser, comparison);
+	}
+	if(greater.length > 1){
+		greater = quickSort(greater, comparison);
+	}
+	
+	lesser.push(middle);
+	list = lesser.concat(greater);
+	return list;
+
 }
+
 
 // an object allowing global references to objects
 var globalRefs = {
@@ -40,7 +75,7 @@ var globalRefs = {
 
 // tell me if it's an array
 function is_array(input){
-	return typeof(input)=='object'&&(input instanceof Array);
+	return typeof(input) == 'object' && (input instanceof Array);
 }
 
 // precede backslash characters and double quotes with backslash characters
