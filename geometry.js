@@ -236,3 +236,25 @@ function projectOnSegment(x1, y1, x2, y2, px,py){
 	}
 	return returnval;
 }
+
+function reflectOnLine(x1, y1, x2, y2, px, py){	
+	var rval = undefined;
+	var u, dx, dy, hyp, projx, projy;
+	dx = x2 - x1;
+	dy = y2 - y1;
+
+	// the square actually, but whatever
+	hyp = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+
+	if(hyp != 0){
+		u = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / hyp;
+		projx = x1 + u * dx;
+		projy = y1 + u * dy;
+		rval = {
+			x : projx + projx - px,
+			y : projy + projy - py
+		};
+	}
+	return rval;
+}
+

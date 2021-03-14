@@ -1,3 +1,8 @@
+// returns a random integer from 0 to limit - 1
+var randomInt = function(limit){
+	return Math.floor(Math.random() * limit);
+}
+
 var randomText = (function(){
 	var randomTextCache = [], randomTextCount = 0;
 	// returns "numChars" random characters that have not been returned previously
@@ -96,7 +101,7 @@ function in_array(needle, haystack) {
 }
 
 
-function write(text, style, useBreak){
+function write(text, style, useBreak){ // need to rewrite this to NOT use jquery
 	if(style == undefined) style = 'font-weight:bold; color:#FFF';
 	if(useBreak == undefined) useBreak = true;
 
@@ -112,7 +117,7 @@ function error(text){
 	write('[ERROR]: ' + text, "font-weight: bold; color: #F55");
 }
 
-function popup(message, lockscreen){
+function popup(message, lockscreen){ // rewrite to NOT use jquery
 	if(lockscreen == undefined) lockscreen = true;
 	var messageDiv = $('<div style="text-align:center"></div>');
 
