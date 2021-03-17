@@ -258,3 +258,12 @@ function reflectOnLine(x1, y1, x2, y2, px, py){
 	return rval;
 }
 
+function unitVector(x1, y1, x2, y2){
+	var dx = x2 - x1;
+	var dy = y2 - y1;
+	var length = Math.sqrt(dx * dx + dy * dy);
+	return{
+		dx : dx / length,
+		dy : dy / length
+	}
+}
