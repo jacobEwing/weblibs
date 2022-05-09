@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style type="text/css">
+
+		/* the defaults */
+		.tabinator {
+			display: grid;
+			grid-template-columns: 1fr;
+			margin-top:1.5em;
+			background-color: #FFF;
+			border-top:1px solid #000;
+		}
+
+		.tabinator > * {
+			grid-row-start: 1;
+			grid-column-start: 1;
+			background-color: inherit;
+			z-index: 1;
+			border-radius: inherit;
+			border-color: inherit;
+		}
+
+		.tabinator > .active {
+			z-index: 2;
+		}
+
+		.tabinator > * > .tab {
+			height: 1.5em;
+			border: 1px solid;
+			border-width: 1px 1px 0 1px;
+			border-radius: 1mm 1mm 0 0;
+			border-color: inherit;
+			display: inline-block;
+			position: absolute;
+			margin-top: -webkit-calc(-1.5em - 1px);
+			margin-top: calc(-1.5em - 1px);
+
+			background-color: inherit;
+			padding: 0 .25em;
+			box-sizing: border-box;
+			-moz-box-sizing: border-box;
+			-webkit-box-sizing: border-box;
+		}
+		.tabinator > .active > .tab {
+			box-sizing: content-box;
+			-moz-box-sizing: content-box;
+			-webkit-box-sizing: content-box;
+		}
+
+		.tabinator > :not(.active){
+			filter: contrast(70%);
+		}
+
+		/* customizing */
+		.tabinator {
+			border-radius: 2px;
+			position: relative;
+			background-color: #FFE8E0;
+			border: 1px solid #665;
+			border-radius: 1em;
+		}
+
+
+	</style>
+	<script type="text/javascript">
+		window.onload = function(){
+			tabinate(document.getElementById('tablist'), { activeTab : 1, leftTabMargin: 10});
+		}
+
+		function tabinate(element, params){
+			if(params == undefined) params = {};
+			var n;
+			var defaults = {
+				activeTab : 0,
+				spacing : 2,
+				leftTabMargin : 2
+			}
+			for(n in defaults){
+				if(params[n] == undefined){
+					params[n] = defaults[n];
+				}
+			}
+
+			var tabs = element.children;
+			var tab, content, spacing = params.spacing;
+			var tabX = params.leftTabMargin;
+			var offset = element.getBoundingClientRect.left + params.spacing;
+
+			element.classList.add('tabinator');
+			for(n = 0; n < tabs.length; n++){
+				content = tabs[n];
+				tab = document.createElement('div');
+				content.prepend(tab);
+				tab.innerHTML = content.dataset.tab;
+				tab.classList.add('tab');
+				tab.style.left = tabX + 'px';
+
+				if(n == params.activeTab){
+					content.classList.add('active');
+				}
+				tab.onclick = function(){
+					var n;
+					for(n = 0; n < tabs.length; n++){
+						if(tabs[n] == this.parentElement){
+							tabs[n].classList.add('active');
+						}else{
+							tabs[n].classList.remove('active');
+						}
+					}
+				}
+
+				tabX += tab.getBoundingClientRect().width + params.spacing;
+			}
+
+		}
+	</script>
+</head>
+<body style="padding: 2em">
+	<div id="tablist" style="width: 100%">
+		<div data-tab="alpha">
+			<div style="margin: 1em">
+				<h1>Tab 1 Content</h1>
+				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			</div>
+		</div>
+		<div data-tab="bravo">
+			<div style="margin: 1em">
+				<h1>Tab 2 Content</h1>
+				<p>
+				"How much wood would a woodchuck chuck" is an American English-language tongue-twister. The woodchuck, a word originating from Algonquian "wejack", is a kind of marmot, regionally called a groundhog.
+				</p>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
