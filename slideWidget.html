@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style type="text/css">
+		.slider{
+			border-radius: 1000cm; /* stupid css lacking an elegant way for dynamic circluar ends */
+			position: relative;
+			border: 1px solid;
+			/*box-shadow: rgb(0 0 0 / 50%) -2px -2px 2px 2px inset, rgb(255 255 255 / 60%) 2px 2px 2px 2px inset;*/
+		}
+
+		.slider > div{
+			border: inherit;
+			display:inline-block;
+			position: absolute;
+			background-color: inherit;
+			border-radius: inherit;
+			box-shadow: inherit;
+			height: 5mm;
+			width: 5mm;
+
+			/* make it unselectable */
+			-moz-user-select: -moz-none;
+			-khtml-user-select: none;
+			-webkit-user-select: none;
+			-o-user-select: none;
+			user-select: none;
+		}
+	</style>
+	<script type="text/javascript">
+		function buildSlider(element, config){
+			var boundingBox = element.getBoundingClientRect();
+			var n;
+
+			// let's make sure all of the necessary parameters are in place
+			var defaults = {
+				min : 0,
+				max : 100,
+				step : 0,
+				values : {i : 0},
+				reversible: false,
+			};
+			if(config == undefined) config = {};
+			for(n in defaults){
+				if(config[n] == undefined){
+					config[n] = defaults[n];
+				}
+			}
+			config.step = Math.abs(config.step); // <-- idiot proofing
+
+
+			// now we can add style and events
+			element.classList.add('slider');
+
+			// initialize each handle
+			for(idx in config.values){
+				var widget = document.createElement('div');
+				element.appendChild(widget);
+
+				// center it vertically
+				var halfHeight = boundingBox.height / 2;
+				widget.style.marginTop = -(widget.getBoundingClientRect().height / 2 + 1) + 'px';
+				widget.style.top = halfHeight + 'px';
+
+				(function(component, idx){
+
+					// set the initial position
+					var xOffset = component.getBoundingClientRect().width >> 1;
+					component.style.left = (boundingBox.width * (config.values[idx] - config.min) / (config.max - config.min) - xOffset) + 'px';
+
+					// add events
+					component.onmousedown = function(){
+						var oldMousemove = document.onmousemove;
+						var oldMouseup = document.onmouseup;
+
+						// if we don't want the values to change side, then we need to alter the range of this one based on any others
+						var range = {
+							min : config.min,
+							max : config.max
+						}
+						if(!config.reversible){
+							for(let i in config.values){
+								if(i == idx) continue;
+								if(config.values[i] < config.values[idx] && config.values[i] > range.min){
+									range.min = config.values[i];
+								}
+								if(config.values[i] > config.values[idx] && config.values[i] < range.max){
+									range.max = config.values[i];
+								}
+							}
+						}
+
+						document.onmousemove = function(e){
+							var x, value;
+							x = e.clientX - boundingBox.left;
+
+							// make sure we're within the range of the widget
+							x = x < 0 ? 0 : (x > boundingBox.width ? boundingBox.width : x);
+							value = x / boundingBox.width * (config.max - config.min) + config.min;
+
+							// account for non-flippable locations
+							let recalculate = 0;
+							if(value < range.min){
+								value = range.min;
+								reclaculate = 1;
+							}
+							if(value > range.max){
+								value = range.max;
+								recalculate = 1;
+							}
+
+							if(config.step > 0){
+								// if we have a step value, snap to that
+								value = Math.round(value / config.step) * config.step;
+								recalculate = 1;
+							}
+
+							if(recalculate){
+								x = boundingBox.width * (value - config.min) / (config.max - config.min);
+							}
+							
+							config.values[idx] = value;
+							component.style.left = (x - xOffset) + 'px';
+							if(typeof config.onmousemove == 'function'){
+								config.onmousemove(JSON.parse(JSON.stringify(config.values)));
+							}
+						}
+						document.onmouseup = function(){
+							document.onmousemove = oldMousemove;
+							document.onmouseup = oldMouseup;
+							if(typeof config.onmouseup == 'function'){
+								config.onmouseup(JSON.parse(JSON.stringify(config.values)));
+							}
+						}
+					}
+				})(widget, idx);
+			}
+		}
+	</script>
+	<script type="text/javascript">
+		window.onload = function(){
+			buildSlider(document.getElementById('example'),
+				{
+					min: -50, max : 50, step : 5, values: {a : -25, b: 25}, reversible: false,
+					onmouseup: function(data){
+						console.log('released: ' + JSON.stringify(data));
+					},
+					onmousemove: function(data){
+						console.log(JSON.stringify(data));
+					}
+				}
+			);
+		};
+	</script>
+</head>
+<body style="padding: 2em">
+	<div id="example" style="width: 10em; height: 1em; background-color:#FED; display: inline-block; margin-left:3cm"></div>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style type="text/css">
+		html, body {
+			height: 100%;
+			margin: 0;
+			background-color: #fff;
+		}
+
+		body{
+			display: flex;
+			flex-direction: row;
+			flex-wrap: nowrap;
+			justify-content: center;
+			align-items: center;
+			align-content: center;
+		}
+		body > canvas{
+			image-rendering: crisp-edges;
+			image-rendering: -moz-crisp-edges;
+			image-rendering: -webkit-optimize-contrast;
+			image-rendering: optimize-contrast;
+			image-rendering: pixelated;
+			-ms-interpolation-mode: nearest-neighbor;
+			border: 1px solid #000;
+/*			-webkit-transform-origin: 0 0;*/
+		}
+	</style>
+	<script type="text/javascript" src="GFXLib.js"></script>
+	<script type="text/javascript">
+		var gfx;
+		document.addEventListener("DOMContentLoaded", function () {
+			var area = {
+				x : 320,
+				y : 200
+			}
+			let bestWidth = Math.floor(window.innerWidth / area.x);
+			let bestHeight = Math.floor(window.innerHeight / area.y);
+			if(bestWidth < 1 || bestHeight < 1) bestWidth = bestHeight = 1;
+
+			var gfx = new GFX({
+				canvas : document.getElementById('target'),
+				width : area.x,
+				height : area.y,
+				scale : bestWidth < bestHeight ? bestWidth : bestHeight
+			});
+
+			setInterval(function(){
+				for(let n = 0; n < 10; n++){
+					let x1 = Math.floor(Math.random() * area.x);
+					let y1 = Math.floor(Math.random() * area.y);
+					let colour = {
+						red : Math.floor(Math.random() * 255),
+						green : Math.floor(Math.random() * 255),
+						blue : Math.floor(Math.random() * 255),
+						alpha : 1
+					}
+					gfx.fillCircle(x1, y1, 5 + Math.floor(Math.random() * 50), Math.floor(Math.random() * 256));
+
+
+					let x2 = Math.floor(Math.random() * area.x);
+					let y2 = Math.floor(Math.random() * area.y);
+					gfx.line(x1, y1, x2, y2, gfx.MCGAColour(Math.floor(Math.random() * 256)));
+				}
+				gfx.update();
+			}, 25);
+
+		});
+	</script>
+</head>
+<body>
+</body>
+	<canvas id="target"></canvas>
+</html>
