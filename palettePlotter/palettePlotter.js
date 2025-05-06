@@ -10,12 +10,13 @@ var palettePlotter = function(targetCanvas, palette){
 	this.states = {
 		idle : 0,
 		dragging : 1,
-		adjustingAmplitude : 2
+		adjustingAmplitude : 2,
+		adjustingFrequency : 3
 		
 	};
 
 	this.state = this.states.idle; // a state for handling I/O
-	this.previewFrequency = 3; // a multiplier for the range of angles used in rendering the gradients/waves
+	this.previewFrequency = 1; // a multiplier for the range of angles used in rendering the gradients/waves
 	this.waveSelectRadius = cssToPixels('3mm'); // min proximity to sine wave to click and drag
 	this.lastMoveEvent = null; // used to calculate displacement on mouse motion
 	this.selectedPrimary = null; // The currently selected primary colour to adjust
@@ -28,6 +29,9 @@ var palettePlotter = function(targetCanvas, palette){
 	// click and drag rather than offset
 	this.resizeMargin = Math.round(this.canvas.height * 0.1);
 	if(this.resizeMargin < 5) this.resizeMargin = 5;
+
+	// get the vertical canvas area that will be used for plotting the graph
+	this.graphHeight = this.canvas.height - cssToPixels('2cm');
 
 
 }
@@ -48,15 +52,10 @@ palettePlotter.prototype.handleMouseDown = function(e){
 
 		if(this.inResizeMargin(mousePos.x, mousePos.y, this.selectedPrimary)){
 			this.state = this.states.adjustingAmplitude;
-			// If the location we started at represents an angle whose sine
-			// is a negative value, then we need to negate the amplitude caluclated
-			// by the mouse position.  We'll calucalte it here instead of on the fly.
+			// If the location we started at represents an angle whose sine is a
+			// negative value, then we will need to negate the amplitude caluclated
+			// by the mouse position.
 			let ang = this.getPrimaryAngle(this.selectedPrimary, mousePos.x);
-			/*
-			if(ang > 0 && ang <=  Math.PI ){
-				//this.palette[this.selectedPrimary].amplitude *= -1;
-				
-			}*/
 			this.amplitudeSign = ang > 0 && ang <= Math.PI ? -1 : 1;
 		}else{
 			this.state = this.states.dragging;
@@ -104,7 +103,7 @@ palettePlotter.prototype.handleMouseMove = function(e){
 
 			// convert the displacement to match the actual wave being plotted
 			delta.x = 2 * Math.PI * delta.x / this.canvas.width;
-			delta.y /= this.canvas.height;
+			delta.y /= this.graphHeight;
 			
 			this.palette[this.selectedPrimary].angOffset += delta.x * this.palette[this.selectedPrimary].frequency * this.previewFrequency;
 
@@ -116,20 +115,13 @@ palettePlotter.prototype.handleMouseMove = function(e){
 			
 			break;
 		case this.states.adjustingAmplitude:
-			// Calculate the distance from the zero line to the mouse position
+			// set the amplitude based on the distance from the zero line to the mouse position
 			let y = mousePos.y - this.zeroY(this.selectedPrimary);
-			// Set amplitude based on that distance
-			this.palette[this.selectedPrimary].amplitude = this.amplitudeSign * y * 2 / this.canvas.height;
-
-			// this mess negates the amplitude if we're in a trough on the sine wave.
-			/*
-			let ang = this.getPrimaryAngle(this.selectedPrimary, mousePos.x);
-			if(ang > 0 && ang <=  Math.PI ){
-				this.palette[this.selectedPrimary].amplitude *= -1;
-				
-			}*/
+			this.palette[this.selectedPrimary].amplitude = this.amplitudeSign * y * 2 / this.graphHeight;
 			this.update();
 
+			break;
+		case this.states.adjustingFrequency:
 			break;
 
 	}
@@ -155,7 +147,7 @@ palettePlotter.prototype.update = function(){
 
 		// render the background colour at the current x coordinate
 		let previewColour = this.getColour(x);
-		for(y = 0; y < this.canvas.height; y++){
+		for(y = 0; y < this.graphHeight; y++){
 			drawPixel(image, x, y, previewColour);
 		}
 		
@@ -168,13 +160,15 @@ palettePlotter.prototype.update = function(){
 				blue : primary == 'blue' ? 255 : 0
 			};
 
+			let zeroY = this.zeroY(primary);
 			// draw the zero line for the wave
-			if(x & 1){
+			if(x & 1 && zeroY >= 0 && zeroY < this.graphHeight){
 				drawPixel(image, x, this.zeroY(primary), colour);
 			}
 
 			// render the next pixel on each wave
 			y = this.primaryY(primary, x);
+			if(y < 0 || y >= this.graphHeight) continue;
 			drawPixel(image, x, y, colour);
 			drawPixel(image, x, y - 1, colour);
 			drawPixel(image, x, y + 1, colour);
@@ -227,7 +221,7 @@ palettePlotter.prototype.getPrimaryAmplitude = function(primaryname, count){
 
 palettePlotter.prototype.zeroY = function(primaryname){
 	// get y coordinate of the canvas position for the zero line on the given primary
-	return Math.floor(this.canvas.height * (.5 - this.palette[primaryname].ytranslate));
+	return Math.floor(this.graphHeight * (.5 - this.palette[primaryname].ytranslate));
 }
 
 palettePlotter.prototype.primaryY = function(primaryname, x){
@@ -246,7 +240,7 @@ palettePlotter.prototype.primaryY = function(primaryname, x){
 			* Math.abs(this.palette[primaryname].amplitude)
 			- this.palette[primaryname].ytranslate
 		) 
-		* this.canvas.height 
+		* this.graphHeight 
 
 	);
 }
