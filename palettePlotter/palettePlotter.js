@@ -11,16 +11,18 @@ var palettePlotter = function(targetCanvas, palette){
 		idle : 0,
 		dragging : 1,
 		adjustingAmplitude : 2,
-		adjustingFrequency : 3
+		adjustingPeriod : 3
 		
 	};
 
 	this.state = this.states.idle; // a state for handling I/O
-	this.previewFrequency = 1; // a multiplier for the range of angles used in rendering the gradients/waves
+	this.previewPeriodScale = 1; // a multiplier for the range of angles used in rendering the gradients/waves
 	this.waveSelectRadius = cssToPixels('3mm'); // min proximity to sine wave to click and drag
 	this.lastMoveEvent = null; // used to calculate displacement on mouse motion
 	this.selectedPrimary = null; // The currently selected primary colour to adjust
 	this.amplitudeSign = 1; // Needed when changing amplitude, as it must be negateded depending on where the grab point was
+	this.periodHandleWidth = cssToPixels('1ch');
+	this.selectedPeriodSlider = null;
 
 	this.canvas = targetCanvas;
 	this.context = this.canvas.getContext('2d');
@@ -31,7 +33,10 @@ var palettePlotter = function(targetCanvas, palette){
 	if(this.resizeMargin < 5) this.resizeMargin = 5;
 
 	// get the vertical canvas area that will be used for plotting the graph
-	this.graphHeight = this.canvas.height - cssToPixels('2cm');
+	this.graphHeight = this.canvas.height - cssToPixels('3lh');
+
+	// get the height of the slider widgets for adjusting the wave periods
+	this.periodSliderHeight = Math.floor((this.canvas.height - this.graphHeight) / 3);
 
 
 }
@@ -44,11 +49,12 @@ palettePlotter.prototype.handleMouseDown = function(e){
 		x : e.clientX - rect.left,
 		y : e.clientY - rect.top
 	};
-	let selected = this.getSelectedPrimary(e.clientX - rect.left, e.clientY - rect.top);
+	this.selectedPeriodSlider = this.getSelectedPeriodSlider(mousePos.x, mousePos.y);
+	let selectedWave = this.getSelectedPrimary(e.clientX - rect.left, e.clientY - rect.top);
 
-	if(selected != null){
+	if(selectedWave != null){
 		this.lastMoveEvent = e;
-		this.selectedPrimary = selected;
+		this.selectedPrimary = selectedWave;
 
 		if(this.inResizeMargin(mousePos.x, mousePos.y, this.selectedPrimary)){
 			this.state = this.states.adjustingAmplitude;
@@ -59,6 +65,10 @@ palettePlotter.prototype.handleMouseDown = function(e){
 			this.amplitudeSign = ang > 0 && ang <= Math.PI ? -1 : 1;
 		}else{
 			this.state = this.states.dragging;
+		}
+	}else{
+		if(this.selectedPeriodSlider != null){
+			this.state = this.states.adjustingPeriod;
 		}
 	}
 
@@ -87,15 +97,20 @@ palettePlotter.prototype.handleMouseMove = function(e){
 	switch(this.state){
 		case this.states.idle:
 
-			let selected = this.getSelectedPrimary(mousePos.x, mousePos.y);
-			if(selected != null){
-				if(this.inResizeMargin(mousePos.x, mousePos.y, selected)){
+			let selectedWave = this.getSelectedPrimary(mousePos.x, mousePos.y);
+			if(selectedWave != null){
+				if(this.inResizeMargin(mousePos.x, mousePos.y, selectedWave)){
 					this.canvas.style.cursor = 'n-resize';
 				}else{
 					this.canvas.style.cursor = 'pointer';
 				}
 			} else {
-				this.canvas.style.cursor = 'auto';
+				let selectedSlider = this.getSelectedPeriodSlider(mousePos.x, mousePos.y);
+				if(selectedSlider != null){
+					this.canvas.style.cursor = 'pointer';
+				}else{
+					this.canvas.style.cursor = 'auto';
+				}
 			}
 			break;
 
@@ -105,7 +120,7 @@ palettePlotter.prototype.handleMouseMove = function(e){
 			delta.x = 2 * Math.PI * delta.x / this.canvas.width;
 			delta.y /= this.graphHeight;
 			
-			this.palette[this.selectedPrimary].angOffset += delta.x * this.palette[this.selectedPrimary].frequency * this.previewFrequency;
+			this.palette[this.selectedPrimary].angOffset += delta.x * this.previewPeriodScale / this.palette[this.selectedPrimary].period;
 
 			let newYTranslate = this.palette[this.selectedPrimary].ytranslate + delta.y;
 			this.palette[this.selectedPrimary].ytranslate = newYTranslate;
@@ -121,7 +136,12 @@ palettePlotter.prototype.handleMouseMove = function(e){
 			this.update();
 
 			break;
-		case this.states.adjustingFrequency:
+		case this.states.adjustingPeriod:
+			newPeriod = mousePos < 1 ? 1 : mousePos.x >= this.canvas.width ? this.canvas.width : mousePos.x;
+			newPeriod /= this.canvas.width;
+			this.palette[this.selectedPeriodSlider].period = newPeriod;
+
+			this.update();
 			break;
 
 	}
@@ -177,7 +197,44 @@ palettePlotter.prototype.update = function(){
 
 	}
 
+	// now draw the frequncy adjusters
+	for(let n = 0; n < 3; n++){
+		// this colour chunk is a bit overkill and can be simplified when the coding's done if that remains the case
+		let primary = ['red', 'green', 'blue'][n];
+		let borderColour = {
+			red : primary == 'red' ? 255 : 0, 
+			green: primary == 'green' ? 255 : 0, 
+			blue : primary == 'blue' ? 255 : 0
+		};
+		let fillColour = {
+			red : borderColour.red >> 1,
+			green : borderColour.green >> 1,
+			blue : borderColour.blue >> 1
+		}
+
+		let region = this.getPeriodSliderRectangle(primary);
+		drawBox(image, 0, region.y1, region.x1, region.y2, fillColour, fillColour);
+		drawBox(image, region.x1, region.y1, region.x2, region.y2, borderColour, fillColour);
+	}
+
+
 	this.context.putImageData(image, 0, 0);
+
+}
+
+palettePlotter.prototype.getPeriodSliderRectangle = function(primary){
+	let y = primary == 'red' ? 0 : primary == 'green' ? 1 : 2;
+	y *= this.periodSliderHeight;
+	y += this.graphHeight;
+	let x = Math.round((this.canvas.width - 2 * this.periodHandleWidth) * this.palette[primary].period);
+
+	return {
+		x1 : x + this.periodHandleWidth,
+		y1 : y,
+		x2 : x + this.periodHandleWidth * 2,
+		y2 : y + this.periodSliderHeight
+	};
+
 
 }
 
@@ -195,8 +252,8 @@ palettePlotter.prototype.getColour = function(count){
 // For the specified R, G, or B primary, caluclate the angle that is later used
 // to get the primary colour's value
 palettePlotter.prototype.getPrimaryAngle = function(primaryname, count){
-	let rval = (count * this.previewFrequency * 2 * Math.PI / this.canvas.width)
-		* this.palette[primaryname].frequency
+	let rval = (count * this.previewPeriodScale * 2 * Math.PI / this.canvas.width)
+		/ this.palette[primaryname].period
 		+ this.palette[primaryname].angOffset;
 
 	// let's keep it in the 0 to 2pi range
@@ -277,25 +334,38 @@ palettePlotter.prototype.getSelectedPrimary = function(x, y){
 
 }
 
+palettePlotter.prototype.getSelectedPeriodSlider = function(x, y){
+	rval = null;
+	for(let primary of ['red', 'green', 'blue']){
+		let box = this.getPeriodSliderRectangle(primary);
+		if(box.x1 <= x && box.x2 >= x && box.y1 <= y && box.y2 >= y){
+			rval = primary;
+			break;
+		}
+	}
+	return rval;
+
+}
+
 palettePlotter.prototype.getDefaultPalette = function(){
 	return {
 		"red": {
 			"angOffset": -.47,
 			"ytranslate" : 0,
 			"amplitude" : 1,
-			"frequency" : 1
+			"period" : 1
 		},
 		"green": {
 			"angOffset": 0,
 			"ytranslate" : 0,
 			"amplitude" : 1,
-			"frequency" : 1
+			"period" : 1
 		},
 		"blue": {
 			"angOffset": .7,
 			"ytranslate" : 0,
 			"amplitude" : 1,
-			"frequency" : 1
+			"period" : 1
 		}
 	};
 
@@ -314,6 +384,26 @@ function drawPixel(image, x, y, colour){
 	image.data[index + 2] = colour.blue;
 	image.data[index + 3] = alpha;
 		
+}
+
+function drawBox(image, x1, y1, x2, y2, borderColour, fillColour){
+	var x, y;
+	for(x = x1; x <= x2; x++){
+		drawPixel(image, x, y1, borderColour);
+		drawPixel(image, x, y2, borderColour);
+	}
+
+	for(y = y1; y <= y2; y++){
+		drawPixel(image, x1, y, borderColour);
+		drawPixel(image, x2, y, borderColour);
+	}
+
+	for(x = x1 + 1; x < x2; x++){
+		for(y = y1 + 1; y < y2; y++){
+			drawPixel(image, x, y, fillColour);
+		}
+	}
+	
 }
 
 // approximate the number of pixels in the given style measurement.
@@ -346,8 +436,13 @@ function initialize(step){
 
 		case 'add events':
 			paletteGraph.canvas.onmousedown = function(e){ paletteGraph.handleMouseDown(e); };
-			paletteGraph.canvas.onmouseup = function(e){ paletteGraph.handleMouseUp(e); };
-			paletteGraph.canvas.onmousemove = function(e){ paletteGraph.handleMouseMove(e); };
+
+			let oldOnMouseUp = document.onmouseup == null ? function(){} : document.onmouseup;
+			document.onmouseup = function(e){ paletteGraph.handleMouseUp(e); oldOnMouseUp(e)};
+
+			let oldOnMouseMove = document.onmousemove == null ? function(){} : document.onmousemove;
+			document.onmousemove = function(e){ paletteGraph.handleMouseMove(e); oldOnMouseMove(e);};
+
 			setTimeout(function(){initialize('finish');}, 0);
 			break;
 
