@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sprite.js — Reference</title>
+<style>
+	:root {
+		--bg:        #f7f6f2;
+		--panel:     #ffffff;
+		--ink:       #1e1c19;
+		--muted:     #6a6459;
+		--rule:      #ddd8cd;
+		--accent:    #8a3a1e;
+		--accent-2:  #2a5a3a;
+		--code-bg:   #2b2a28;
+		--code-ink:  #ece7da;
+		--code-key:  #e6b06a;
+		--code-str:  #9ed18c;
+		--code-cmt:  #8a857a;
+		--code-num:  #f0a880;
+	}
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; }
+	body {
+		margin: 0;
+		background: var(--bg);
+		color: var(--ink);
+		font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	}
+	.page {
+		display: grid;
+		grid-template-columns: 260px minmax(0, 1fr);
+		max-width: 1180px;
+		margin: 0 auto;
+		padding: 0 24px;
+		gap: 40px;
+	}
+	@media (max-width: 900px) {
+		.page { grid-template-columns: 1fr; gap: 0; }
+		nav.toc { position: static !important; max-height: none !important; }
+	}
+
+	header.title {
+		grid-column: 1 / -1;
+		padding: 48px 0 24px;
+		border-bottom: 1px solid var(--rule);
+	}
+	header.title h1 {
+		margin: 0 0 6px;
+		font-size: 34px;
+		letter-spacing: -0.02em;
+	}
+	header.title p {
+		margin: 0;
+		color: var(--muted);
+		font-size: 17px;
+	}
+
+	nav.toc {
+		position: sticky;
+		top: 24px;
+		align-self: start;
+		max-height: calc(100vh - 48px);
+		overflow-y: auto;
+		padding: 24px 0;
+		font-size: 14px;
+	}
+	nav.toc h2 {
+		font-size: 12px;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--muted);
+		margin: 0 0 10px;
+	}
+	nav.toc ol {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		counter-reset: toc;
+	}
+	nav.toc li { counter-increment: toc; margin: 2px 0; }
+	nav.toc a {
+		color: var(--ink);
+		text-decoration: none;
+		display: block;
+		padding: 3px 8px;
+		border-left: 2px solid transparent;
+		border-radius: 0 4px 4px 0;
+	}
+	nav.toc a::before {
+		content: counter(toc) ". ";
+		color: var(--muted);
+	}
+	nav.toc a:hover {
+		background: var(--panel);
+		border-left-color: var(--accent);
+	}
+
+	main { padding: 24px 0 96px; min-width: 0; }
+	main section {
+		padding: 24px 0;
+		border-top: 1px solid var(--rule);
+	}
+	main section:first-child { border-top: none; padding-top: 8px; }
+	main h2 {
+		font-size: 24px;
+		margin: 0 0 16px;
+		letter-spacing: -0.01em;
+	}
+	main h3 {
+		font-size: 17px;
+		margin: 28px 0 10px;
+	}
+	main h4 {
+		font-size: 15px;
+		margin: 20px 0 6px;
+		color: var(--muted);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+	p { margin: 0 0 12px; }
+	p.note {
+		background: var(--panel);
+		border-left: 3px solid var(--accent-2);
+		padding: 10px 14px;
+		border-radius: 0 4px 4px 0;
+		color: #3a3630;
+	}
+	p.warn {
+		background: var(--panel);
+		border-left: 3px solid var(--accent);
+		padding: 10px 14px;
+		border-radius: 0 4px 4px 0;
+	}
+	code {
+		font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+		font-size: 0.9em;
+		background: #eae6dc;
+		padding: 1px 5px;
+		border-radius: 3px;
+	}
+	pre {
+		background: var(--code-bg);
+		color: var(--code-ink);
+		padding: 16px 18px;
+		border-radius: 6px;
+		overflow-x: auto;
+		margin: 0 0 16px;
+		font-size: 13.5px;
+		line-height: 1.55;
+	}
+	pre code {
+		background: none;
+		padding: 0;
+		color: inherit;
+		font-size: inherit;
+	}
+	/* minimal token colouring via inline spans */
+	.k { color: var(--code-key); }
+	.s { color: var(--code-str); }
+	.c { color: var(--code-cmt); font-style: italic; }
+	.n { color: var(--code-num); }
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 0 0 16px;
+		font-size: 14px;
+		background: var(--panel);
+		border-radius: 6px;
+		overflow: hidden;
+	}
+	th, td {
+		text-align: left;
+		padding: 8px 12px;
+		border-bottom: 1px solid var(--rule);
+		vertical-align: top;
+	}
+	th {
+		background: #efe9dc;
+		font-weight: 600;
+		font-size: 12.5px;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--muted);
+	}
+	tr:last-child td { border-bottom: none; }
+	td code { white-space: nowrap; }
+
+	ul, ol { margin: 0 0 16px; padding-left: 24px; }
+	li { margin: 4px 0; }
+
+	.demo-wrap {
+		background: var(--panel);
+		border: 1px solid var(--rule);
+		border-radius: 6px;
+		padding: 16px;
+		margin: 0 0 16px;
+	}
+	.demo-wrap canvas {
+		display: block;
+		margin: 0 auto 12px;
+		image-rendering: pixelated;
+		border: 1px solid var(--rule);
+		border-radius: 4px;
+		background: #f0ece2;
+	}
+	.demo-controls {
+		display: flex;
+		gap: 8px;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+	.demo-controls button {
+		font: inherit;
+		font-size: 13px;
+		padding: 5px 12px;
+		background: #efe9dc;
+		color: var(--ink);
+		border: 1px solid var(--rule);
+		border-radius: 4px;
+		cursor: pointer;
+	}
+	.demo-controls button:hover { background: #e4ddcc; }
+	.demo-status {
+		text-align: center;
+		font-size: 13px;
+		color: var(--muted);
+		margin: 8px 0 0;
+	}
+</style>
+</head>
+<body>
+<div class="page">
+
+	<header class="title">
+		<h1>sprite.js</h1>
+		<p>A small, dependency-free sprite sheet and animation runtime for <code>&lt;canvas&gt;</code>.</p>
+	</header>
+
+	<nav class="toc">
+		<h2>Contents</h2>
+		<ol>
+			<li><a href="#quickstart">Quick start</a></li>
+			<li><a href="#model">Mental model</a></li>
+			<li><a href="#loading">Loading sheets</a></li>
+			<li><a href="#json">Sheet JSON format</a></li>
+			<li><a href="#sheet">SpriteSheet API</a></li>
+			<li><a href="#sprite">Sprite API</a></li>
+			<li><a href="#animation">Animation</a></li>
+			<li><a href="#collision">Collision</a></li>
+			<li><a href="#hierarchy">Parent / child sprites</a></li>
+			<li><a href="#serialise">Serialisation</a></li>
+			<li><a href="#demo">Live demo</a></li>
+			<li><a href="#migration">Migrating from the old API</a></li>
+			<li><a href="#gotchas">Common gotchas</a></li>
+		</ol>
+	</nav>
+
+	<main>
+
+		<!-- ================================================================ -->
+		<section id="quickstart">
+			<h2>1. Quick start</h2>
+
+			<p>Two classes. A <code>SpriteSheet</code> holds an image, the frames cut from it, and the animation sequences that stitch those frames together. A <code>Sprite</code> is one live instance you can position, animate, and draw.</p>
+
+<pre><code><span class="c">// 1. Load a sheet once, at startup.</span>
+<span class="k">const</span> sheet = <span class="k">await</span> SpriteSheet.load(<span class="s">'sprites/player.json'</span>);
+
+<span class="c">// 2. Make a sprite from it.</span>
+<span class="k">const</span> hero = sheet.newSprite();
+hero.setPosition(<span class="n">100</span>, <span class="n">100</span>);
+hero.setScale(<span class="n">2</span>);
+hero.setFrame(<span class="s">'front_idle'</span>);
+
+<span class="c">// 3. In your frame loop: update the clock, then draw.</span>
+<span class="k">function</span> frame(now) {
+	<span class="k">const</span> dt = now - last; last = now;
+
+	hero.update(dt);        <span class="c">// dt in milliseconds</span>
+	hero.draw(ctx);
+
+	requestAnimationFrame(frame);
+}</code></pre>
+
+			<p class="note"><strong>The single most important thing:</strong> animations do <em>not</em> advance on their own. Nothing happens inside a sprite between calls to <code>update()</code>. If you forget to call it, sprites freeze on frame 0.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="model">
+			<h2>2. Mental model</h2>
+
+			<p>The library separates three concerns that the old API mixed together:</p>
+
+			<table>
+				<thead>
+					<tr><th>Concept</th><th>Lives in</th><th>What it is</th></tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Sheet</td>
+						<td><code>SpriteSheet</code></td>
+						<td>A single image plus the frame rectangles cut from it. Immutable after loading. Every sprite points back at one sheet.</td>
+					</tr>
+					<tr>
+						<td>Frame</td>
+						<td><code>sheet.frames[name]</code></td>
+						<td>A rectangle <code>{ x, y, width, height, centerx, centery }</code> describing one image region and its origin.</td>
+					</tr>
+					<tr>
+						<td>Sequence</td>
+						<td><code>sheet.sequences[name]</code></td>
+						<td>An ordered list of frame names, a rate, and an iteration count. Definitions, not state.</td>
+					</tr>
+					<tr>
+						<td>Sprite</td>
+						<td><code>Sprite</code></td>
+						<td>One instance: position, rotation, current frame, playback state, children. Mutable, cheap, disposable.</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<p>Because sheets are read-only and sprites are disposable, several sprites can share a sheet without any reference counting, and you can safely build and throw away sprites mid-frame.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="loading">
+			<h2>3. Loading sheets</h2>
+
+			<h3>From a URL</h3>
+			<p><code>SpriteSheet.load()</code> fetches the JSON, then loads the image it points at. It's a static async factory — you never construct a sheet yourself.</p>
+
+<pre><code><span class="k">const</span> sheet = <span class="k">await</span> SpriteSheet.load(<span class="s">'sprites/player.json'</span>);</code></pre>
+
+			<h3>Relative image paths</h3>
+			<p>Image paths inside the sheet JSON resolve relative to the <em>JSON file</em>, not the page. A sheet at <code>sprites/player.json</code> whose <code>"image"</code> is <code>"player.png"</code> loads <code>sprites/player.png</code>. This makes sheet folders relocatable — move <code>sprites/</code> anywhere and everything still works.</p>
+
+			<p>Override the base explicitly if your sheets live somewhere unusual:</p>
+
+<pre><code><span class="k">const</span> sheet = <span class="k">await</span> SpriteSheet.load(<span class="s">'player.json'</span>, {
+	baseUrl: <span class="s">'https://cdn.example.com/art/'</span>
+});</code></pre>
+
+			<h3>From a plain object</h3>
+			<p>Useful for tests, generated sheets, and the editor. The object is not mutated, so you can reuse it.</p>
+
+<pre><code><span class="k">const</span> sheet = <span class="k">await</span> SpriteSheet.fromJSON({
+	image: <span class="s">'player.png'</span>,
+	frameWidth: <span class="n">24</span>,
+	frameHeight: <span class="n">24</span>,
+	frames: {
+		idle: { col: <span class="n">0</span>, row: <span class="n">0</span> },
+		walk: { col: <span class="n">1</span>, row: <span class="n">0</span> }
+	}
+});</code></pre>
+
+			<h3>From a canvas or ImageBitmap</h3>
+			<p><code>setImage()</code> accepts any <code>CanvasImageSource</code>, not just a URL. This is how the editor will hand you procedurally-generated or user-dropped images.</p>
+
+<pre><code><span class="k">const</span> canvas = document.createElement(<span class="s">'canvas'</span>);
+<span class="c">// ...draw something onto canvas...</span>
+
+<span class="k">const</span> sheet = <span class="k">await</span> SpriteSheet.fromJSON({
+	image: canvas,
+	frameWidth: <span class="n">16</span>,
+	frameHeight: <span class="n">16</span>,
+	frames: { /* ... */ }
+});</code></pre>
+
+			<p>Once loaded, <code>sheet.ready</code> is <code>true</code> and <code>newSprite()</code> will work. Calling <code>newSprite()</code> on an unready sheet throws.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="json">
+			<h2>4. Sheet JSON format</h2>
+
+			<p>Here's the player sheet, annotated. Everything except <code>frames</code> is optional.</p>
+
+<pre><code>{
+	<span class="s">"image"</span>:       <span class="s">"player.png"</span>,   <span class="c">// relative to this JSON file</span>
+	<span class="s">"frameWidth"</span>:  <span class="n">24</span>,            <span class="c">// tile size; used by col/row below</span>
+	<span class="s">"frameHeight"</span>: <span class="n">24</span>,
+	<span class="s">"frameRate"</span>:   <span class="n">10</span>,            <span class="c">// default frames per second</span>
+	<span class="s">"centerx"</span>:     <span class="n">0</span>,             <span class="c">// default origin (see below)</span>
+	<span class="s">"centery"</span>:     <span class="n">0</span>,
+
+	<span class="s">"collision"</span>: {                 <span class="c">// optional, see §8</span>
+		<span class="s">"radius"</span>:  <span class="n">2</span>,
+		<span class="s">"offsetX"</span>: <span class="n">0</span>,
+		<span class="s">"offsetY"</span>: <span class="n">-1</span>
+	},
+
+	<span class="s">"frames"</span>: {
+		<span class="s">"left_idle"</span>: { <span class="s">"col"</span>: <span class="n">0</span>, <span class="s">"row"</span>: <span class="n">0</span> },
+		<span class="s">"left_step_1"</span>: { <span class="s">"col"</span>: <span class="n">1</span>, <span class="s">"row"</span>: <span class="n">0</span> },
+		<span class="c">// ...</span>
+	},
+
+	<span class="s">"sequences"</span>: {
+		<span class="s">"walkleft"</span>: {
+			<span class="s">"frames"</span>: [<span class="s">"left_step_1"</span>, <span class="s">"left_step_2"</span>, <span class="s">"left_step_3"</span>]
+		},
+		<span class="s">"attackleft"</span>: {
+			<span class="s">"frames"</span>: [<span class="s">"left_sword_2"</span>, <span class="s">"left_sword_1"</span>, <span class="s">"left_sword_3"</span>, <span class="s">"left_sword_1"</span>],
+			<span class="s">"iterations"</span>: <span class="n">1</span>
+		}
+	}
+}</code></pre>
+
+			<h3>Frame keys</h3>
+			<p>All keys are case-insensitive and leading/trailing whitespace is ignored. A frame's position is <em>accumulated</em>, so you can mix and match:</p>
+
+			<table>
+				<thead>
+					<tr><th>Key</th><th>Effect</th></tr>
+				</thead>
+				<tbody>
+					<tr><td><code>col</code></td><td>Adds <code>col × frameWidth</code> to the frame's x.</td></tr>
+					<tr><td><code>row</code></td><td>Adds <code>row × frameHeight</code> to the frame's y.</td></tr>
+					<tr><td><code>x</code>, <code>left</code>, <code>xoffset</code></td><td>Adds the value (in pixels) to the frame's x. All three are aliases.</td></tr>
+					<tr><td><code>y</code>, <code>top</code>, <code>yoffset</code></td><td>Adds the value (in pixels) to the frame's y. All three are aliases.</td></tr>
+					<tr><td><code>width</code></td><td>Overrides the frame's width. Defaults to <code>frameWidth</code>.</td></tr>
+					<tr><td><code>height</code></td><td>Overrides the frame's height. Defaults to <code>frameHeight</code>.</td></tr>
+					<tr><td><code>centerx</code>, <code>cx</code></td><td>Sets the frame's origin x. Defaults to the sheet's <code>centerx</code>.</td></tr>
+					<tr><td><code>centery</code>, <code>cy</code></td><td>Sets the frame's origin y. Defaults to the sheet's <code>centery</code>.</td></tr>
+					<tr><td><code>drawOffset</code></td><td>An <code>{x, y}</code> nudge applied at draw time only. Does not affect collision or origin.</td></tr>
+				</tbody>
+			</table>
+
+			<p>Because <code>col</code> and <code>x</code> both add to the same value, they compose. <code>{ "col": 2, "xoffset": 1 }</code> gives an x of <code>2 × frameWidth + 1</code>.</p>
+
+			<h3>Sequence keys</h3>
+
+			<table>
+				<thead>
+					<tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+				</thead>
+				<tbody>
+					<tr><td><code>frames</code></td><td><code>[]</code></td><td>Array of frame names, in play order. Names must exist in <code>frames</code>.</td></tr>
+					<tr><td><code>frameRate</code></td><td>sheet's <code>frameRate</code></td><td>Frames per second.</td></tr>
+					<tr><td><code>iterations</code></td><td><code>0</code></td><td><code>0</code> loops forever. <code>1</code> plays once. <code>n</code> plays <em>n</em> times total. Any finite count fires the completion callback.</td></tr>
+					<tr><td><code>frameTimes</code></td><td>—</td><td>Per-frame durations in milliseconds. When present, overrides <code>frameRate</code>. Wraps if shorter than <code>frames</code>.</td></tr>
+					<tr><td><code>callback</code></td><td>—</td><td>Function invoked when a finite sequence completes. Only when written in JS, not loadable from JSON.</td></tr>
+					<tr><td><code>method</code></td><td><code>'auto'</code></td><td>Retained for compatibility. Under the current runtime this has no effect — see §7.</td></tr>
+				</tbody>
+			</table>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="sheet">
+			<h2>5. SpriteSheet API</h2>
+
+			<h3>Static factories</h3>
+			<table>
+				<thead><tr><th>Method</th><th>Returns</th></tr></thead>
+				<tbody>
+					<tr><td><code>SpriteSheet.load(url, opts?)</code></td><td><code>Promise&lt;SpriteSheet&gt;</code></td></tr>
+					<tr><td><code>SpriteSheet.fromJSON(data, opts?)</code></td><td><code>Promise&lt;SpriteSheet&gt;</code></td></tr>
+				</tbody>
+			</table>
+			<p><code>opts.baseUrl</code> overrides how relative image paths are resolved.</p>
+
+			<h3>Properties</h3>
+			<table>
+				<thead><tr><th>Property</th><th>Type</th><th>Notes</th></tr></thead>
+				<tbody>
+					<tr><td><code>image</code></td><td><code>CanvasImageSource</code></td><td>The loaded image, or whatever you passed to <code>setImage</code>.</td></tr>
+					<tr><td><code>imageSrc</code></td><td><code>string|null</code></td><td>The original URL, if any. Used by <code>toJSON()</code>.</td></tr>
+					<tr><td><code>baseUrl</code></td><td><code>string|null</code></td><td>Used to resolve relative image paths.</td></tr>
+					<tr><td><code>frameWidth</code>, <code>frameHeight</code></td><td><code>number</code></td><td>Default tile size, used by <code>col</code>/<code>row</code>.</td></tr>
+					<tr><td><code>centerx</code>, <code>centery</code></td><td><code>number</code></td><td>Default origin.</td></tr>
+					<tr><td><code>defaultFrameRate</code></td><td><code>number</code></td><td>Frames per second, used when a sequence doesn't set one.</td></tr>
+					<tr><td><code>scale</code></td><td><code>number</code></td><td>Copied onto every sprite created by <code>newSprite()</code>. Useful when a whole sheet needs to be drawn at a non-1 scale.</td></tr>
+					<tr><td><code>frames</code></td><td><code>Record&lt;string, Frame&gt;</code></td><td>Look up a frame by name.</td></tr>
+					<tr><td><code>sequences</code></td><td><code>Record&lt;string, Sequence&gt;</code></td><td>Look up a sequence by name.</td></tr>
+					<tr><td><code>collision</code></td><td><code>CollisionShape|null</code></td><td>See §8.</td></tr>
+					<tr><td><code>ready</code></td><td><code>boolean</code></td><td><code>true</code> once a factory has finished.</td></tr>
+				</tbody>
+			</table>
+
+			<h3>Getters</h3>
+			<table>
+				<thead><tr><th>Getter</th><th>Returns</th></tr></thead>
+				<tbody>
+					<tr><td><code>imageWidth</code>, <code>imageHeight</code></td><td>Pixel dimensions of <code>image</code>. Always current.</td></tr>
+					<tr><td><code>frameNames</code></td><td><code>string[]</code> — every frame name.</td></tr>
+					<tr><td><code>sequenceNames</code></td><td><code>string[]</code> — every sequence name.</td></tr>
+				</tbody>
+			</table>
+
+			<h3>Methods</h3>
+
+			<h4>Sprites</h4>
+			<table>
+				<thead><tr><th>Method</th><th>Returns</th></tr></thead>
+				<tbody>
+					<tr><td><code>newSprite()</code></td><td>A fresh <code>Sprite</code> bound to this sheet, with <code>sheet.scale</code> applied. Throws if <code>ready</code> is <code>false</code>.</td></tr>
+					<tr><td><code>setScale(s)</code></td><td>The sheet, for chaining. Affects only sprites created afterwards.</td></tr>
+				</tbody>
+			</table>
+
+			<h4>Editing</h4>
+			<p>These are mainly for the editor and for tests. Sheets are treated as read-only once sprites exist.</p>
+			<table>
+				<thead><tr><th>Method</th><th>Notes</th></tr></thead>
+				<tbody>
+					<tr><td><code>addFrame(name, params?)</code></td><td>Adds or replaces a frame. <code>params</code> uses the same keys as JSON frame data.</td></tr>
+					<tr><td><code>removeFrame(name)</code></td><td>Deletes a frame. Does not check whether sequences still reference it.</td></tr>
+					<tr><td><code>loadFrames(obj)</code></td><td>Bulk add from a <code>{name: params}</code> object.</td></tr>
+					<tr><td><code>addSequence(name, def?)</code></td><td>Adds or replaces a sequence.</td></tr>
+					<tr><td><code>loadSequences(obj)</code></td><td>Bulk add from a <code>{name: def}</code> object.</td></tr>
+					<tr><td><code>validate()</code></td><td>Returns <code>[{sequence, frame}]</code> for every sequence frame that doesn't exist. Run it after bulk edits.</td></tr>
+					<tr><td><code>setImage(src)</code></td><td>Async. Accepts a URL string or any <code>CanvasImageSource</code>.</td></tr>
+					<tr><td><code>applyJSON(raw)</code></td><td>Async. Applies a sheet-data object in place, without replacing the sheet.</td></tr>
+				</tbody>
+			</table>
+
+			<h4>Serialisation</h4>
+			<table>
+				<thead><tr><th>Method</th><th>Notes</th></tr></thead>
+				<tbody>
+					<tr><td><code>toJSON()</code></td><td>Returns a JSON-safe copy of the sheet. Function callbacks on sequences are dropped. See §10.</td></tr>
+				</tbody>
+			</table>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="sprite">
+			<h2>6. Sprite API</h2>
+
+			<h3>Construction</h3>
+			<p>Always via the sheet: <code>sheet.newSprite()</code>. The <code>Sprite</code> constructor also accepts a sheet, but <code>newSprite()</code> is the sanctioned path — it enforces <code>ready</code> and applies <code>sheet.scale</code>.</p>
+
+			<h3>Transform properties</h3>
+			<table>
+				<thead><tr><th>Property</th><th>Default</th><th>Meaning</th></tr></thead>
+				<tbody>
+					<tr><td><code>position</code></td><td><code>{x: 0, y: 0}</code></td><td>Where the sprite's origin lands in the parent's coordinate space. Mutate directly or use <code>setPosition()</code>.</td></tr>
+					<tr><td><code>drawOffset</code></td><td><code>{x: 0, y: 0}</code></td><td>Applied at draw time only. Does not affect collision.</td></tr>
+					<tr><td><code>scale</code></td><td><code>1</code></td><td>Uniform scale. Applied to both position and drawing.</td></tr>
+					<tr><td><code>rotation</code></td><td><code>0</code></td><td>Radians, clockwise. Rotates around the sprite's origin.</td></tr>
+					<tr><td><code>flipX</code>, <code>flipY</code></td><td><code>false</code></td><td>Mirrors around the origin without needing negative scale.</td></tr>
+					<tr><td><code>opacity</code></td><td><code>1</code></td><td>Multiplied into <code>ctx.globalAlpha</code> for this sprite and its children.</td></tr>
+					<tr><td><code>visible</code></td><td><code>true</code></td><td>When <code>false</code>, <code>draw()</code> returns immediately. Children are not drawn either.</td></tr>
+					<tr><td><code>zIndex</code></td><td><code>0</code></td><td>Used only for parent/child ordering. See §9.</td></tr>
+				</tbody>
+			</table>
+
+			<h4>Convenience methods</h4>
+<pre><code>hero.setPosition(<span class="n">100</span>, <span class="n">50</span>);
+hero.setScale(<span class="n">2</span>);
+hero.rotate(Math.PI / <span class="n">4</span>);   <span class="c">// adds to current rotation</span></code></pre>
+
+			<h3>Frame state</h3>
+			<table>
+				<thead><tr><th>Property / Method</th><th>Notes</th></tr></thead>
+				<tbody>
+					<tr><td><code>frame</code></td><td>The current frame <em>object</em>, or <code>null</code>.</td></tr>
+					<tr><td><code>frameName</code></td><td>The current frame's name, or <code>null</code>.</td></tr>
+					<tr><td><code>setFrame(name)</code></td><td>Throws if the frame doesn't exist. Returns the sprite.</td></tr>
+					<tr><td><code>clearFrame()</code></td><td>Clears the frame; the sheet's full image is used as a fallback.</td></tr>
+					<tr><td><code>frameWidth</code>, <code>frameHeight</code></td><td>Getters. Current frame's size, falling back to the sheet's tile size.</td></tr>
+				</tbody>
+			</table>
+
+			<h3>Drawing</h3>
+<pre><code>hero.draw(ctx);
+hero.draw(ctx, { x: <span class="n">200</span>, y: <span class="n">100</span>, scale: <span class="n">3</span> });</code></pre>
+
+			<p><code>draw()</code> honours <code>visible</code>, <code>opacity</code>, <code>rotation</code>, <code>flipX</code>/<code>flipY</code>, and any <code>drawOffset</code> on the frame. Options override the sprite's own values for that call only:</p>
+
+			<table>
+				<thead><tr><th>Option</th><th>Overrides</th></tr></thead>
+				<tbody>
+					<tr><td><code>x</code>, <code>y</code></td><td><code>position</code> (before <code>drawOffset</code> is added).</td></tr>
+					<tr><td><code>scale</code></td><td><code>sprite.scale</code>.</td></tr>
+					<tr><td><code>frameX</code>, <code>frameY</code></td><td>Source rect origin. Rarely needed; mainly for slicing odd shapes.</td></tr>
+					<tr><td><code>frameWidth</code>, <code>frameHeight</code></td><td>Source rect size.</td></tr>
+					<tr><td><code>centerx</code>, <code>centery</code></td><td>Origin override.</td></tr>
+				</tbody>
+			</table>
+
+			<h4>Direct blits</h4>
+			<p>Two lower-level helpers bypass the sprite's transform, origin, and rotation. Useful for tiles and background decoration where you want raw pixel control.</p>
+
+<pre><code><span class="c">// Copy a specific region of the sheet.</span>
+hero.drawArea(ctx, dx, dy, sx, sy, sw, sh, scale);
+
+<span class="c">// Copy a pseudo-random region — handy for rubble, foliage, stars.</span>
+hero.drawRandomArea(ctx, dx, dy, width, height, randomKey);</code></pre>
+
+			<p><code>drawRandomArea</code> picks a stable region for a given <code>randomKey</code>. Pass the same key for the same cell and you get the same art every frame; pass <code>undefined</code> and you get true randomness.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="animation">
+			<h2>7. Animation</h2>
+
+			<p>Four methods and one tick call.</p>
+
+<pre><code>hero.play(<span class="s">'walkleft'</span>);                   <span class="c">// start; replaces any running sequence</span>
+hero.play(<span class="s">'attackleft'</span>, {
+	onComplete: () =&gt; hero.play(<span class="s">'front_idle'</span>)
+});
+
+hero.update(dtMs);                     <span class="c">// advance the clock</span>
+hero.stop();                           <span class="c">// cancel, no callback fires</span>
+
+hero.animating;                        <span class="c">// boolean</span>
+hero.sequenceName;                     <span class="c">// 'walkleft' or null</span></code></pre>
+
+			<h3>Nothing animates on its own</h3>
+			<p>The runtime is passive. Between calls to <code>update()</code>, nothing happens. This is deliberate — it lets you drive animation from your game loop, pause everything by skipping the update, and step frame-by-frame in the editor.</p>
+
+			<p class="warn">If a sprite looks frozen on its first frame, check that <code>update()</code> is being called every tick. <code>dtMs</code> is in <strong>milliseconds</strong>; if your loop measures in seconds, multiply by 1000.</p>
+
+			<h3>Sequence completion</h3>
+			<p>The completion callback fires when a sequence with a finite <code>iterations</code> count finishes. A looping sequence (<code>iterations: 0</code>, the default) never fires it.</p>
+
+			<p>On completion the sprite holds its final frame. That's the natural moment to chain:</p>
+
+<pre><code>hero.play(<span class="s">'attackdown'</span>, {
+	onComplete: () =&gt; hero.setFrame(<span class="s">'front_idle'</span>)
+});</code></pre>
+
+			<h3>Frame rate vs. frame times</h3>
+			<p>For uniformly-paced animation, use <code>frameRate</code> (frames per second):</p>
+
+<pre><code><span class="s">"walkleft"</span>: {
+	<span class="s">"frames"</span>: [<span class="s">"left_step_1"</span>, <span class="s">"left_step_2"</span>, <span class="s">"left_step_3"</span>],
+	<span class="s">"frameRate"</span>: <span class="n">8</span>
+}</code></pre>
+
+			<p>For per-frame timing — a hold on one pose, a slow windup, a snap on the hit — use <code>frameTimes</code> (milliseconds each):</p>
+
+<pre><code><span class="s">"attackleft"</span>: {
+	<span class="s">"frames"</span>: [<span class="s">"left_sword_2"</span>, <span class="s">"left_sword_1"</span>, <span class="s">"left_sword_3"</span>, <span class="s">"left_sword_1"</span>],
+	<span class="s">"iterations"</span>: <span class="n">1</span>,
+	<span class="s">"frameTimes"</span>: [<span class="n">120</span>, <span class="n">60</span>, <span class="n">80</span>, <span class="n">60</span>]
+}</code></pre>
+
+			<p><code>frameTimes</code> wins over <code>frameRate</code> when both are present. If it's shorter than <code>frames</code>, it wraps.</p>
+
+			<h3>Long stalls</h3>
+			<p>If <code>update()</code> is called with a very large <code>dt</code> — tab switch, debugger pause — the runtime stops fast-forwarding after 512 iterations and resets the accumulator. You won't see an animation race through its whole sequence at high speed.</p>
+
+			<h3>About <code>method</code></h3>
+			<p>The old library had a <code>method: 'auto'|'manual'</code> flag that decided whether a sequence advanced itself. In the new runtime there's no self-driving path, so <code>method</code> is inert. "Manual" now just means "don't call <code>update()</code> on it." It's still parsed and preserved by <code>toJSON()</code>, so old sheets round-trip cleanly.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="collision">
+			<h2>8. Collision</h2>
+
+			<p>A sheet can declare a collision footprint that scales with the sprite. It's attached to the <em>sheet</em>, not the sprite, because shape is a property of the artwork.</p>
+
+			<h3>Single-circle shorthand</h3>
+<pre><code><span class="s">"collision"</span>: {
+	<span class="s">"radius"</span>:  <span class="n">2</span>,
+	<span class="s">"offsetX"</span>: <span class="n">0</span>,
+	<span class="s">"offsetY"</span>: <span class="n">-1</span>
+}</code></pre>
+
+			<h3>Multi-circle form</h3>
+			<p>For long or oddly-shaped entities, use several circles:</p>
+
+<pre><code><span class="s">"collision"</span>: {
+	<span class="s">"circles"</span>: [
+		{ <span class="s">"radius"</span>: <span class="n">4</span>, <span class="s">"offsetX"</span>:  <span class="n">0</span>,  <span class="s">"offsetY"</span>: <span class="n">-6</span> },
+		{ <span class="s">"radius"</span>: <span class="n">4</span>, <span class="s">"offsetX"</span>:  <span class="n">0</span>,  <span class="s">"offsetY"</span>: <span class="n">2</span> }
+	]
+}</code></pre>
+
+			<p>Offsets are relative to the sprite's origin, so a footprint that sits at the character's feet typically uses negative <code>offsetY</code>.</p>
+
+			<p class="note"><strong>Radius is in sheet pixels</strong>, not scaled pixels. Multiply by <code>sprite.scale</code> if you need screen-space distances.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="hierarchy">
+			<h2>9. Parent / child sprites</h2>
+
+			<p>Children are drawn inside the parent's transform. A child at <code>(0, 0)</code> sits on the parent's origin, which makes equipment, held items, and mounts natural to author.</p>
+
+<pre><code><span class="k">const</span> sword = swordSheet.newSprite();
+hero.attach(sword);              <span class="c">// or: sword.attachTo(hero)</span>
+
+sword.position.x = <span class="n">8</span>;
+sword.position.y = <span class="n">-4</span>;
+
+<span class="c">// Now drawing the hero draws the sword too, in the hero's space,</span>
+<span class="c">// rotated and scaled along with it.</span>
+hero.draw(ctx);</code></pre>
+
+			<h3>Draw order</h3>
+			<p>Children are drawn in two passes, split by their <code>zIndex</code> sign:</p>
+
+			<ul>
+				<li>Children with <code>zIndex &lt; 0</code> draw <em>behind</em> the parent.</li>
+				<li>Children with <code>zIndex &ge; 0</code> draw <em>in front</em>.</li>
+			</ul>
+
+			<p>Within each pass, draw order follows insertion order. So to make a sword sit behind the body while facing away, set <code>sword.zIndex = -1</code>; to bring it forward when facing the camera, set it back to <code>0</code>.</p>
+
+<pre><code><span class="c">// Facing away from camera: weapon hidden behind the body.</span>
+sword.zIndex = hero.facing === <span class="n">0</span> ? -<span class="n">1</span> : <span class="n">0</span>;</code></pre>
+
+			<h3>Detaching and destroying</h3>
+<pre><code>hero.detach(sword);        <span class="c">// remove a specific child</span>
+sword.detach();            <span class="c">// detach from its own parent</span>
+
+hero.destroy();            <span class="c">// stops animation, drops children, unlinks from parent</span></code></pre>
+
+			<p><code>destroy()</code> is what you want when a sprite goes away for good. Detaching is enough if you'll reuse it.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="serialise">
+			<h2>10. Serialisation</h2>
+
+			<p><code>sheet.toJSON()</code> returns a plain, JSON-safe object you can stringify and reload. This is the format the editor uses for save/load, and it round-trips.</p>
+
+<pre><code><span class="k">const</span> sheet = <span class="k">await</span> SpriteSheet.load(<span class="s">'sprites/player.json'</span>);
+<span class="k">const</span> copy  = sheet.toJSON();
+
+<span class="c">// copy can be passed straight back to fromJSON():</span>
+<span class="k">const</span> reloaded = <span class="k">await</span> SpriteSheet.fromJSON(copy);</code></pre>
+
+			<h3>What's preserved</h3>
+			<ul>
+				<li><code>image</code> (as <code>imageSrc</code>, or <code>null</code> for canvas sources).</li>
+				<li><code>frameWidth</code>, <code>frameHeight</code>, <code>centerx</code>, <code>centery</code>, <code>frameRate</code>.</li>
+				<li>Every frame, with pixel coordinates normalised to <code>x</code>/<code>y</code>.</li>
+				<li>Every sequence, with <code>frameRate</code>, <code>iterations</code>, <code>method</code>, and <code>frameTimes</code>. Defaults are omitted.</li>
+				<li>The <code>collision</code> block, if present.</li>
+			</ul>
+
+			<h3>What's dropped</h3>
+			<p>Function callbacks on sequences. They can't survive JSON, and reloading without them is the intended behaviour — attach callbacks at the call site with <code>play(name, { onComplete })</code> instead.</p>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="demo">
+			<h2>11. Live demo</h2>
+
+			<p>This demo generates a four-frame sprite sheet on a canvas at runtime, builds a <code>SpriteSheet</code> from it, and drives a <code>Sprite</code> through the API. No external files are involved.</p>
+
+			<p class="note">For the demo to run, <code>sprite.js</code> must sit next to this HTML file. The rest of the document works standalone.</p>
+
+			<div class="demo-wrap">
+				<canvas id="demoCanvas" width="160" height="160"></canvas>
+				<div class="demo-controls">
+					<button data-speed="4">4 fps</button>
+					<button data-speed="10">10 fps</button>
+					<button data-speed="24">24 fps</button>
+					<button id="demoStop">Stop</button>
+					<button id="demoFlip">Flip X</button>
+					<button id="demoRotate">Rotate</button>
+				</div>
+				<p class="demo-status" id="demoStatus">Loading…</p>
+			</div>
+
+<pre><code><span class="c">// Build a sprite sheet from a canvas we draw ourselves.</span>
+<span class="k">function</span> makeSheetImage() {
+	<span class="k">const</span> c = document.createElement(<span class="s">'canvas'</span>);
+	c.width = <span class="n">64</span>; c.height = <span class="n">16</span>;
+	<span class="k">const</span> ctx = c.getContext(<span class="s">'2d'</span>);
+	<span class="k">const</span> colours = [<span class="s">'#d04040'</span>, <span class="s">'#40a040'</span>, <span class="s">'#4040d0'</span>, <span class="s">'#d0a020'</span>];
+	<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++) {
+		ctx.fillStyle = colours[i];
+		ctx.fillRect(i * <span class="n">16</span>, <span class="n">0</span>, <span class="n">16</span>, <span class="n">16</span>);
+	}
+	<span class="k">return</span> c;
+}
+
+<span class="k">const</span> sheet = <span class="k">await</span> SpriteSheet.fromJSON({
+	image: makeSheetImage(),
+	frameWidth: <span class="n">16</span>,
+	frameHeight: <span class="n">16</span>,
+	frames: {
+		f0: { col: <span class="n">0</span>, row: <span class="n">0</span> },
+		f1: { col: <span class="n">1</span>, row: <span class="n">0</span> },
+		f2: { col: <span class="n">2</span>, row: <span class="n">0</span> },
+		f3: { col: <span class="n">3</span>, row: <span class="n">0</span> }
+	},
+	sequences: {
+		cycle: { frames: [<span class="s">'f0'</span>, <span class="s">'f1'</span>, <span class="s">'f2'</span>, <span class="s">'f3'</span>], frameRate: <span class="n">4</span> }
+	}
+});
+
+<span class="k">const</span> sprite = sheet.newSprite();
+sprite.play(<span class="s">'cycle'</span>);</code></pre>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="migration">
+			<h2>12. Migrating from the old API</h2>
+
+			<p>If you're porting code that used <code>cSprite</code> and <code>spriteSet</code>:</p>
+
+			<table>
+				<thead><tr><th>Old</th><th>New</th></tr></thead>
+				<tbody>
+					<tr><td><code>new spriteSet(); await s.load(f)</code></td><td><code>await SpriteSheet.load(f)</code></td></tr>
+					<tr><td><code>new spriteSet(); s.loadJSON(data)</code></td><td><code>await SpriteSheet.fromJSON(data)</code></td></tr>
+					<tr><td><code>new cSprite(sheet)</code></td><td><code>sheet.newSprite()</code></td></tr>
+					<tr><td><code>sprite.startSequence(name)</code></td><td><code>sprite.play(name)</code></td></tr>
+					<tr><td><code>sprite.startSequence(name, cb)</code></td><td><code>sprite.play(name, { onComplete: cb })</code></td></tr>
+					<tr><td><code>sprite.stopSequence()</code></td><td><code>sprite.stop()</code></td></tr>
+					<tr><td><code>sprite.currentSequence</code></td><td><code>sprite.sequence</code></td></tr>
+					<tr><td><code>sprite.currentFrame</code></td><td><code>sprite.frame</code></td></tr>
+					<tr><td><code>sprite.template</code></td><td><code>sprite.sheet</code></td></tr>
+					<tr><td><code>sprite.myParent</code></td><td><code>sprite.parent</code></td></tr>
+					<tr><td><code>setTemplate()</code></td><td>Removed — construct via <code>sheet.newSprite()</code></td></tr>
+					<tr><td><code>resolveImageDimensions()</code></td><td>Removed — <code>imageWidth</code>/<code>imageHeight</code> are getters</td></tr>
+					<tr><td><code>setFrameSize(w, h)</code></td><td>Assign <code>sheet.frameWidth</code> / <code>frameHeight</code></td></tr>
+					<tr><td><code>load_frames()</code></td><td><code>loadFrames()</code></td></tr>
+					<tr><td><code>load_sequences()</code></td><td><code>loadSequences()</code></td></tr>
+					<tr><td><code>parseCollision()</code></td><td>Removed — handled internally during load</td></tr>
+				</tbody>
+			</table>
+
+			<h3>Behavioural changes worth knowing</h3>
+			<ul>
+				<li><strong>Nothing animates on its own.</strong> You must call <code>sprite.update(dtMs)</code> each frame.</li>
+				<li><strong><code>frameRate</code> is frames per second</strong>, not milliseconds per frame. Old value <code>40</code> (40 ms) is now <code>25</code>.</li>
+				<li><strong>Frame <code>x</code>/<code>y</code> are now pixel offsets.</strong> Grid indices moved to <code>col</code>/<code>row</code>. Old sheets that used <code>"x": 2, "y": 1</code> meaning tile coordinates need converting to <code>"col": 2, "row": 1</code>.</li>
+				<li><strong>The completion callback fires for any finite <code>iterations</code></strong>, not just <code>1</code>. A sequence with <code>iterations: 3</code> calls back after the third pass.</li>
+				<li><strong>Image paths resolve relative to the sheet JSON</strong>, not the page.</li>
+			</ul>
+		</section>
+
+		<!-- ================================================================ -->
+		<section id="gotchas">
+			<h2>13. Common gotchas</h2>
+
+			<h3>Sprites freeze on frame 0</h3>
+			<p>Almost always a missing <code>update()</code> call. Also check your units — <code>update()</code> takes milliseconds. If your loop computes <code>dt</code> in seconds, multiply by 1000 first.</p>
+
+			<h3><code>newSprite()</code> throws "sheet is not ready"</h3>
+			<p>You're calling it on a sheet that hasn't finished loading, or on one you constructed with <code>new SpriteSheet()</code> directly. Always use <code>SpriteSheet.load()</code> or <code>SpriteSheet.fromJSON()</code> and <code>await</code> them.</p>
+
+			<h3>Sprites land at half their intended position</h3>
+			<p>If everything drawn via <code>draw()</code> is off but <code>drawArea()</code> looks right, you probably have a scale mismatch. <code>draw()</code> multiplies <code>x</code>/<code>y</code> by <code>scale</code> internally; feed it world coordinates, not screen coordinates.</p>
+
+			<h3>Animation callback never fires</h3>
+			<p>The sequence is looping (<code>iterations: 0</code> or omitted). Set <code>iterations</code> to a positive number. Also make sure you're passing a <em>function</em> — <code>{ onComplete: {...} }</code> with an object is silently ignored.</p>
+
+			<h3>Frame not found</h3>
+			<p>Typo in a sequence's <code>frames</code> array, or the frame wasn't defined. Run <code>sheet.validate()</code> after loading to catch every one at once:</p>
+<pre><code><span class="k">for</span> (<span class="k">const</span> { sequence, frame } <span class="k">of</span> sheet.validate()) {
+	console.warn(<span class="s">`sequence "${sequence}" references missing frame "${frame}"`</span>);
+}</code></pre>
+
+			<h3>Rotation accumulates instead of setting</h3>
+			<p><code>rotate()</code> <em>adds</em> to the current rotation, matching the old API. To set it, assign directly: <code>sprite.rotation = Math.PI / 2</code>. Calling <code>rotate()</code> inside your render loop will spin the sprite.</p>
+
+			<h3>Child sprite draws in the wrong order</h3>
+			<p>Ordering is by the sign of <code>zIndex</code>, not by magnitude. A child with <code>zIndex: -5</code> draws behind the parent; a child with <code>zIndex: 0</code> draws in front. There's no way to interleave multiple children around the parent.</p>
+		</section>
+
+	</main>
+</div>
+
+<!-- The demo below requires sprite.js to be present alongside this file. -->
+<script src="sprite.js"></script>
+<script>
+<!-- The demo below requires sprite.js to be present alongside this file. -->
+<script src="sprite.js"></script>
+<script>
+(function () {
+	const canvas = document.getElementById('demoCanvas');
+	const status = document.getElementById('demoStatus');
+	if (!canvas) return;
+
+	const ctx = canvas.getContext('2d');
+	ctx.imageSmoothingEnabled = false;
+
+	// Visual enlargement of the 16×16 source frames.
+	// The runtime multiplies both position and size by this value, so
+	// positions we set are in logical pixels, not screen pixels.
+	const SCALE = 4;
+
+	function makeSheetImage() {
+		const c = document.createElement('canvas');
+		c.width = 64;
+		c.height = 16;
+		const cx = c.getContext('2d');
+		const colours = ['#d04040', '#40a040', '#4040d0', '#d0a020'];
+		for (let i = 0; i < 4; i++) {
+			cx.fillStyle = colours[i];
+			cx.fillRect(i * 16, 0, 16, 16);
+			cx.fillStyle = 'rgba(255,255,255,0.85)';
+			cx.font = 'bold 10px sans-serif';
+			cx.fillText(String(i + 1), i * 16 + 5, 12);
+		}
+		return c;
+	}
+
+	if (typeof SpriteSheet === 'undefined') {
+		status.textContent =
+			'sprite.js not found — place it next to this HTML file to run the demo.';
+		canvas.style.opacity = 0.3;
+		return;
+	}
+
+	let sprite = null;
+	let last = 0;
+	let speed = 4;
+	let rotation = 0;
+
+	function renderFrame(now) {
+		if (!sprite) return;
+		const dt = last ? now - last : 0;
+		last = now;
+
+		sprite.update(dt);
+
+		const w = canvas.width;
+		const h = canvas.height;
+		ctx.clearRect(0, 0, w, h);
+
+		// Faint checkerboard so we can see the sprite's true bounds.
+		ctx.save();
+		ctx.globalAlpha = 0.15;
+		for (let y = 0; y < h; y += 16) {
+			for (let x = 0; x < w; x += 16) {
+				ctx.fillStyle = ((x + y) / 16) % 2 ? '#888' : '#bbb';
+				ctx.fillRect(x, y, 16, 16);
+			}
+		}
+		ctx.restore();
+
+		// Centre in LOGICAL pixels. Screen position is logical × SCALE,
+		// so to land the sprite at the canvas centre we divide by SCALE.
+		const cxLogical = w / (2 * SCALE);
+		const cyLogical = h / (2 * SCALE);
+		const orbitX = Math.cos(now / 900) * 4;
+		const orbitY = Math.sin(now / 700) * 4;
+
+		sprite.setPosition(cxLogical + orbitX, cyLogical + orbitY);
+		sprite.rotation = rotation;
+
+		sprite.draw(ctx);
+
+		requestAnimationFrame(renderFrame);
+	}
+
+	(async function () {
+		try {
+			const sheet = await SpriteSheet.fromJSON({
+				image: makeSheetImage(),
+				frameWidth: 16,
+				frameHeight: 16,
+				centerx: 8,
+				centery: 8,
+				frames: {
+					f0: { col: 0, row: 0 },
+					f1: { col: 1, row: 0 },
+					f2: { col: 2, row: 0 },
+					f3: { col: 3, row: 0 }
+				},
+				sequences: {
+					cycle: {
+						frames: ['f0', 'f1', 'f2', 'f3'],
+						frameRate: speed
+					}
+				}
+			});
+
+			sprite = sheet.newSprite();
+			sprite.setScale(SCALE);
+			sprite.play('cycle');
+
+			status.textContent = 'Animating at ' + speed + ' fps · scale ' + SCALE;
+
+			requestAnimationFrame(function (t) {
+				last = 0;
+				renderFrame(t);
+			});
+
+			document.querySelectorAll('[data-speed]').forEach(btn => {
+				btn.addEventListener('click', () => {
+					speed = parseInt(btn.dataset.speed, 10);
+					sheet.sequences.cycle.frameRate = speed;
+					sprite.play('cycle');
+					status.textContent = 'Animating at ' + speed + ' fps · scale ' + SCALE;
+				});
+			});
+
+			document.getElementById('demoStop').addEventListener('click', () => {
+				sprite.stop();
+				status.textContent = 'Stopped on frame "' + sprite.frameName + '"';
+			});
+
+			document.getElementById('demoFlip').addEventListener('click', () => {
+				sprite.flipX = !sprite.flipX;
+				status.textContent = 'flipX = ' + sprite.flipX;
+			});
+
+			let rotating = false;
+			document.getElementById('demoRotate').addEventListener('click', () => {
+				rotating = !rotating;
+				rotation = rotating ? Math.PI / 4 : 0;
+				status.textContent = rotating ? 'Rotated 45°' : 'Rotation cleared';
+			});
+		} catch (err) {
+			status.textContent = 'Demo failed: ' + err.message;
+			console.error(err);
+		}
+	})();
+})();
+</script>
+</script>
+</body>
+</html>
