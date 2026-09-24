@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>valueAdjuster demo</title>
+<link rel="stylesheet" href="valueAdjuster.css">
+<style>
+	body {
+		font-family: system-ui, sans-serif;
+		max-width: 460px;
+		margin: 3rem auto;
+		padding: 0 1rem;
+	}
+	.demo-block {
+		margin-bottom: 2.5rem;
+	}
+	.demo-block label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-size: 14px;
+		color: #444;
+	}
+	.demo-block .value-adjuster {
+		font-size: 40px;
+	}
+	.with-external-display {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+	.with-external-display .value-adjuster {
+		flex: 1;
+	}
+	.external-readout {
+		font-size: 28px;
+		font-variant-numeric: tabular-nums;
+		min-width: 4ch;
+		text-align: right;
+	}
+	.external-input {
+		font-size: 28px;
+		width: 6ch;
+		text-align: right;
+	}
+	#log {
+		margin-top: 2rem;
+		font-size: 13px;
+		color: #666;
+		white-space: pre-wrap;
+	}
+</style>
+</head>
+<body>
+
+	<div class="demo-block">
+		<label for="color-input">Coloured fill style, number shown in the track (default)</label>
+		<input type="number" id="color-input" value="0">
+	</div>
+
+	<div class="demo-block">
+		<label for="handle-div-input">Handle style, value shown in an external &lt;div&gt;</label>
+		<div class="with-external-display">
+			<input type="number" id="handle-div-input" value="0">
+			<div id="handle-div-readout" class="external-readout">0</div>
+		</div>
+	</div>
+
+	<div class="demo-block">
+		<label for="handle-editable-input">Handle style, value shown in an editable &lt;input&gt;</label>
+		<div class="with-external-display">
+			<input type="number" id="handle-editable-input" value="50">
+			<input type="number" id="handle-editable-readout" class="external-input">
+		</div>
+	</div>
+
+	<div id="log">Adjustments will be logged here.</div>
+
+	<script src="valueAdjuster.js"></script>
+	<script>
+		valueAdjuster(document.getElementById('color-input'), {
+			indicatorStyle: 'color',
+			onAdjust: function (newValue) {
+				log('Coloured-fill value adjusted to ' + newValue);
+			}
+		});
+
+		valueAdjuster(document.getElementById('handle-div-input'), {
+			indicatorStyle: 'handle',
+			displayElement: document.getElementById('handle-div-readout'),
+			onAdjust: function (newValue) {
+				log('Handle (div readout) value adjusted to ' + newValue);
+			}
+		});
+
+		valueAdjuster(document.getElementById('handle-editable-input'), {
+			indicatorStyle: 'handle',
+			minimum: 0,
+			maximum: 100,
+			stepSize: 5,
+			showStepSize: true,
+			showResetButton: true,
+			displayElement: document.getElementById('handle-editable-readout'),
+			onAdjust: function (newValue) {
+				log('Handle (editable input) value adjusted to ' + newValue);
+			}
+		});
+
+		function log(message) {
+			var el = document.getElementById('log');
+			el.textContent = message;
+		}
+	</script>
+</body>
+</html>
