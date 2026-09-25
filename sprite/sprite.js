@@ -216,16 +216,6 @@ class SpriteSheet {
 	get imageWidth()  { const i = this.image; return i ? (i.naturalWidth  ?? i.width)  : 0; }
 	get imageHeight() { const i = this.image; return i ? (i.naturalHeight ?? i.height) : 0; }
 
-	// Resolved collision: the frame's own override if it has one, else the
-	// sheet's default. Returns null when neither applies, matching the
-	// pre-frame-override behaviour.
-	get collision() {
-		const f = this.frame;
-		if (f && Object.prototype.hasOwnProperty.call(f, 'collision')) {
-			return f.collision;
-		}
-		return this.sheet?.collision ?? null;
-	}
 	/* ---- construction ---------------------------------------------------- */
 
 	/**
@@ -532,6 +522,16 @@ class Sprite {
 		this._onComplete     = null;
 	}
 
+	// Resolved collision: the frame's own override if it has one, else the
+	// sheet's default. Returns null when neither applies, matching the
+	// pre-frame-override behaviour.
+	get collision() {
+		const f = this.frame;
+		if (f && Object.prototype.hasOwnProperty.call(f, 'collision')) {
+			return f.collision;
+		}
+		return this.sheet?.collision ?? null;
+	}
 	// Live reads: the sprite always reflects the current state of its sheet,
 	// so editor-side mutations (frame data replaced, image swapped) don't
 	// leave stale references behind.
