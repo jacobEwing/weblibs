@@ -134,6 +134,11 @@ function applyFrameParams(frame, params, tileW, tileH) {
 					frame.drawOffset = { x: Number(value.x) || 0, y: Number(value.y) || 0 };
 				}
 				break;
+			case 'collision':
+				frame.collision = value === null
+					? { circles: [] }
+					: clone(value);
+				break;
 		}
 	}
 	return frame;
@@ -211,6 +216,16 @@ class SpriteSheet {
 	get imageWidth()  { const i = this.image; return i ? (i.naturalWidth  ?? i.width)  : 0; }
 	get imageHeight() { const i = this.image; return i ? (i.naturalHeight ?? i.height) : 0; }
 
+	// Resolved collision: the frame's own override if it has one, else the
+	// sheet's default. Returns null when neither applies, matching the
+	// pre-frame-override behaviour.
+	get collision() {
+		const f = this.frame;
+		if (f && Object.prototype.hasOwnProperty.call(f, 'collision')) {
+			return f.collision;
+		}
+		return this.sheet?.collision ?? null;
+	}
 	/* ---- construction ---------------------------------------------------- */
 
 	/**
@@ -437,6 +452,11 @@ class SpriteSheet {
 			if (f.drawOffset && (f.drawOffset.x || f.drawOffset.y)) {
 				out.drawOffset = { x: f.drawOffset.x, y: f.drawOffset.y };
 			}
+
+			if (Object.prototype.hasOwnProperty.call(f, 'collision') && f.collision) {
+				out.collision = clone(f.collision);
+			}
+
 			frames[name] = out;
 		}
 
@@ -484,7 +504,6 @@ class Sprite {
 		}
 
 		this.sheet = sheet;
-		this.image = sheet.image;
 
 		this.position   = { x: 0, y: 0 };
 		this.drawOffset = { x: 0, y: 0 };
@@ -497,7 +516,6 @@ class Sprite {
 		this.visible    = true;
 
 		/** @type {Frame|null} */
-		this.frame = null;
 		this.frameName = null;
 
 		/** @type {Sprite|null} */
@@ -507,12 +525,28 @@ class Sprite {
 
 		// Animation state
 		this.animating    = false;
-		this.sequence     = null;
 		this.sequenceName = null;
 		this._frameIndex     = 0;
 		this._elapsed        = 0;
 		this._iterationsLeft = 0;
 		this._onComplete     = null;
+	}
+
+	// Live reads: the sprite always reflects the current state of its sheet,
+	// so editor-side mutations (frame data replaced, image swapped) don't
+	// leave stale references behind.
+	get image() { return this.sheet?.image ?? null; }
+	get frame() {
+		if (!this.frameName) return null;
+		return this.sheet?.frames?.[this.frameName] ?? null;
+	}
+
+	// Live read: the sprite always reflects the current definition of its
+	// sequence, so editor-side edits (reorder, add, remove) take effect
+	// without needing to re-play.
+	get sequence() {
+		if (!this.sequenceName) return null;
+		return this.sheet?.sequences?.[this.sequenceName] ?? null;
 	}
 
 	get numChildren() { return this.children.length; }
@@ -529,15 +563,14 @@ class Sprite {
 
 	/** @param {string} name */
 	setFrame(name) {
-		const frame = this.sheet.frames[name];
-		if (!frame) throw new Error(`Sprite.setFrame: unknown frame "${name}"`);
-		this.frame = frame;
+		if (!this.sheet.frames[name]) {
+			throw new Error(`Sprite.setFrame: unknown frame "${name}"`);
+		}
 		this.frameName = name;
 		return this;
 	}
 
 	clearFrame() {
-		this.frame = null;
 		this.frameName = null;
 		return this;
 	}
@@ -562,7 +595,6 @@ class Sprite {
 		}
 
 		this.animating       = true;
-		this.sequence        = seq;
 		this.sequenceName    = name;
 		this._frameIndex     = 0;
 		this._elapsed        = 0;
@@ -576,7 +608,6 @@ class Sprite {
 	/** Stop animating. Does not fire the completion callback. */
 	stop() {
 		this.animating = false;
-		this.sequence = null;
 		this.sequenceName = null;
 		this._onComplete = null;
 		return this;
@@ -609,7 +640,6 @@ class Sprite {
 				if (this._iterationsLeft === 0) {
 					// Finished — hold the final frame, then notify.
 					this.animating = false;
-					this.sequence = null;
 					this.sequenceName = null;
 					const cb = this._onComplete;
 					this._onComplete = null;
