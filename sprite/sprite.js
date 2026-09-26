@@ -537,10 +537,9 @@ class Sprite {
 	// leave stale references behind.
 	get image() { return this.sheet?.image ?? null; }
 	get frame() {
-		if (!this.frameName) return null;
+		if (this.frameName == null) return null;
 		return this.sheet?.frames?.[this.frameName] ?? null;
 	}
-
 	// Live read: the sprite always reflects the current definition of its
 	// sequence, so editor-side edits (reorder, add, remove) take effect
 	// without needing to re-play.
