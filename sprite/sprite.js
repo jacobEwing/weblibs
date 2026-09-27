@@ -38,7 +38,6 @@
  * @property {number} height
  * @property {number} centerx
  * @property {number} centery
- * @property {Vec2}  [drawOffset]
  * @property {CollisionShape} [collision] Per-frame override for the sheet's
  *   collision shape. Absent means "inherit the sheet"; `{ circles: [] }`
  *   means "no collision for this frame".
@@ -136,11 +135,6 @@ function applyFrameParams(frame, params, tileW, tileH) {
 			case 'centerx': case 'cx': frame.centerx = Number(value); break;
 			case 'centery': case 'cy': frame.centery = Number(value); break;
 
-			case 'drawoffset':
-				if (value && typeof value === 'object') {
-					frame.drawOffset = { x: Number(value.x) || 0, y: Number(value.y) || 0 };
-				}
-				break;
 			case 'collision':
 				frame.collision = value === null
 					? { circles: [] }
@@ -343,7 +337,6 @@ class SpriteSheet {
 			height: this.frameHeight || this.imageHeight,
 			centerx: this.centerx,
 			centery: this.centery,
-			drawOffset: { x: 0, y: 0 },
 		};
 		applyFrameParams(frame, params, this.frameWidth, this.frameHeight);
 		this.frames[name] = frame;
@@ -451,9 +444,6 @@ class SpriteSheet {
 				width: f.width, height: f.height,
 				centerx: f.centerx, centery: f.centery,
 			};
-			if (f.drawOffset && (f.drawOffset.x || f.drawOffset.y)) {
-				out.drawOffset = { x: f.drawOffset.x, y: f.drawOffset.y };
-			}
 
 			if (Object.prototype.hasOwnProperty.call(f, 'collision') && f.collision) {
 				out.collision = clone(f.collision);
@@ -708,9 +698,8 @@ class Sprite {
 		const cy = options.centery ?? frame?.centery ?? sheet.centery;
 
 		const scale = options.scale ?? this.scale;
-		const x = (options.x ?? this.position.x) + this.drawOffset.x + (frame?.drawOffset?.x ?? 0);
-		const y = (options.y ?? this.position.y) + this.drawOffset.y + (frame?.drawOffset?.y ?? 0);
-
+		const x = (options.x ?? this.position.x) + this.drawOffset.x;
+		const y = (options.y ?? this.position.y) + this.drawOffset.y;
 		ctx.save();
 		try {
 			ctx.translate(x * scale, y * scale);
