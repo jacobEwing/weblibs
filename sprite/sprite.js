@@ -39,6 +39,9 @@
  * @property {number} centerx
  * @property {number} centery
  * @property {Vec2}  [drawOffset]
+ * @property {CollisionShape} [collision] Per-frame override for the sheet's
+ *   collision shape. Absent means "inherit the sheet"; `{ circles: [] }`
+ *   means "no collision for this frame".
  */
 
 /**
@@ -47,7 +50,10 @@
  * @property {string[]} frames       Frame names, in play order.
  * @property {number}   frameRate    Frames per second.
  * @property {number}   [iterations] 0/undefined = loop forever, n = play n times.
- * @property {'auto'|'manual'} [method]
+ * @property {'auto'|'manual'} [method] Legacy flag, preserved for
+ *   round-tripping old sheets. The runtime is passive — animation only
+ *   advances when `Sprite.update()` is called — so this no longer changes
+ *   behaviour.
  * @property {number[]} [frameTimes] Per-frame durations in ms; overrides frameRate.
  * @property {Function} [callback]   Invoked when a finite sequence completes.
  */
@@ -110,6 +116,7 @@ function loadImage(src) {
  *   col, row               – grid index, multiplied by the sheet's tile size
  *   centerx/cx, centery/cy – origin
  *   drawOffset             – { x, y } render-time nudge
+ *   collision              – per-frame collision shape, or null to clear
  */
 function applyFrameParams(frame, params, tileW, tileH) {
 	for (const rawKey of Object.keys(params)) {
@@ -181,7 +188,12 @@ function parseCollision(value) {
 
 /**
  * An image plus the frames cut from it and the sequences that animate them.
- * Immutable once loaded — sprites reference it, they never mutate it.
+ *
+ * The runtime treats a loaded sheet as read-only — sprites reference it and
+ * never write to it. The editor does the opposite: it mutates `frames`,
+ * `sequences`, `image`, and the top-level settings directly, which is why
+ * Sprite reads `frame`, `image`, and `sequence` through live getters rather
+ * than caching.
  */
 class SpriteSheet {
 	constructor(options = {}) {
@@ -505,7 +517,7 @@ class Sprite {
 		this.opacity    = 1;
 		this.visible    = true;
 
-		/** @type {Frame|null} */
+		/** @type {string|null} Name of the current frame, or null for none. */
 		this.frameName = null;
 
 		/** @type {Sprite|null} */
@@ -522,6 +534,12 @@ class Sprite {
 		this._onComplete     = null;
 	}
 
+	/* ---- live getters ---------------------------------------------------- */
+
+	// All four of the following read through to the sheet so that editor-side
+	// mutations (frame data replaced, image swapped, sequence reordered) take
+	// effect immediately, without the sprite needing to invalidate anything.
+
 	// Resolved collision: the frame's own override if it has one, else the
 	// sheet's default. Returns null when neither applies, matching the
 	// pre-frame-override behaviour.
@@ -532,17 +550,11 @@ class Sprite {
 		}
 		return this.sheet?.collision ?? null;
 	}
-	// Live reads: the sprite always reflects the current state of its sheet,
-	// so editor-side mutations (frame data replaced, image swapped) don't
-	// leave stale references behind.
 	get image() { return this.sheet?.image ?? null; }
 	get frame() {
 		if (this.frameName == null) return null;
 		return this.sheet?.frames?.[this.frameName] ?? null;
 	}
-	// Live read: the sprite always reflects the current definition of its
-	// sequence, so editor-side edits (reorder, add, remove) take effect
-	// without needing to re-play.
 	get sequence() {
 		if (!this.sequenceName) return null;
 		return this.sheet?.sequences?.[this.sequenceName] ?? null;
@@ -783,7 +795,7 @@ class Sprite {
 	}
 
 	/**
-	 * Detach `child` from this sprite, or — with no argument — detach this
+	 * Detach `child` from this sprite, or — with no argument âtach this
 	 * sprite from its own parent.
 	 * @param {Sprite} [child]
 	 */
@@ -810,6 +822,5 @@ class Sprite {
 	}
 }
 
-//export { Sprite, SpriteSheet };
 window.Sprite = Sprite;
 window.SpriteSheet = SpriteSheet;
